@@ -22,6 +22,9 @@
   },
   "homepage": "https://github.com/nherment/seneca-elasticsearch",
   "dependencies": {
-    "elasticsearch": "^2.1.0"
+    "elasticsearch": "2.1.0"
+  },
+  "peerDependencies": {
+    "seneca": "*"
   }
 }

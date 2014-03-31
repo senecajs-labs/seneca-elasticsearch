@@ -1,32 +1,40 @@
 
 var pluginName = 'search'
 
+var assert        = require('assert')
 var elasticsearch = require('elasticsearch')
-
 
 function search(options) {
 
   var seneca = this
 
-  options = options || {
-    host: 'elasticsearch1:9200',
+  options = options || {}
+
+  var connectionOptions = options.connection || {
+    host: 'localhost:9200',
     sniffOnStart: true,
     sniffInterval: 300000,
-    log: 'trace'
+    log: 'error'
   }
 
-  var esClient = new elasticsearch.Client(options)
+  var esClient = new elasticsearch.Client(connectionOptions)
 
   var indexes = {}
 
-  seneca.add(role: pluginName, cmd: 'create-index', function(args, callback) {
-    var indexName = args.name
+  seneca.add({role: pluginName, cmd: 'create-index'}, function(args, callback) {
+    var indexName = args.index
 
     var fields = []
 
     if(args.fields) {
       for(var i = 0 ; i < args.fields.length ; i++) {
         var field = args.fields[i]
+        var suffix = ''
+        if(Number(field.priority) !== NaN && field.priority > 1) {
+          suffix = '^'+field.priority
+        }
+
+        fields.push(field.name + suffix)
       }
     }
 
@@ -36,51 +44,64 @@ function search(options) {
     callback(undefined)
   })
 
-  seneca.add(role: pluginName, cmd: 'save', function(args, callback) {
+  seneca.add({role: pluginName, cmd: 'save'}, function(args, callback) {
 
+    assert.ok(args.data, 'missing args.data')
     var dataType = args.type || args.data.entity$
+    assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type')
 
     esClient.index({
       index: args.index,
       type: dataType,
-      id: 1,
-      body:
-      }
+      id: args.data.id,
+      refresh: options.refreshOnSave,
+      body: args.data
     }, function (err, resp) {
+      if(err) {
+        console.error(err)
+      }
       callback(err)
-    });
+    })
 
   })
 
-  seneca.add(role: pluginName, cmd: 'delete', function(args, callback) {
+  seneca.add({role: pluginName, cmd: 'delete'}, function(args, callback) {
     callback(undefined)
   })
 
-  seneca.add(role: pluginName, cmd: 'search', function(args, callback) {
+  seneca.add({role: pluginName, cmd: 'search'}, function(args, callback) {
 
+    var indexName = args.index
     var fields = indexes[indexName] ? indexes[indexName].fields : ['*']
 
-    esClient.search({
-      index: args.index,
-      type: args.type,
+    var searchParams = {
+      index: indexName,
       body: {
-        query:
+        query: {
           multi_match : {
             query        : args.query,
             type         : 'best_fields',
             fields       : fields,
             tie_breaker  : 0.3
           }
+        }
       }
-    }).then(function (resp) {
-        callback(undefined, resp.hits.hits)
+    }
+
+    if(args.type) {
+      search.type = args.type
+    }
+
+    esClient.search(searchParams).then(function (resp) {
+      callback(undefined, resp.hits.hits)
     }, function (err) {
-        callback(err, undefined)
+      callback(err, undefined)
     });
   })
 
   return {
-    name: pluginName
+    name: pluginName,
+    native: esClient
   }
 }
 
