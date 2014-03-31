@@ -90,6 +90,8 @@ describe('elasticsearch', function() {
         assert.ok(r1.id, 'caramel')
         assert.ok(r1.name, 'abcd')
 
+        assert.ok(results[0]._score > results[1]._score, 'scores should reflect the index priority')
+
         done()
       }
     )
