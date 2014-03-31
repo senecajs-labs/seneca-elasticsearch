@@ -1,0 +1,27 @@
+{
+  "name": "seneca-elasticsearch",
+  "version": "0.1.0",
+  "description": "elasticsearch plugin for seneca",
+  "main": "elasticsearch.js",
+  "scripts": {
+    "test": "mocha test --reporter spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/nherment/seneca-elasticsearch.git"
+  },
+  "keywords": [
+    "elasticsearch",
+    "search",
+    "seneca"
+  ],
+  "author": "Nicolas Herment",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nherment/seneca-elasticsearch/issues"
+  },
+  "homepage": "https://github.com/nherment/seneca-elasticsearch",
+  "dependencies": {
+    "elasticsearch": "^2.1.0"
+  }
+}
