@@ -1,5 +1,5 @@
 
-var pluginName = 'search'
+var pluginName    = 'search'
 
 var assert        = require('assert')
 var elasticsearch = require('elasticsearch')
@@ -41,7 +41,18 @@ function search(options) {
     indexes[indexName] = {
       fields: fields.length > 0 ? fields : ['id^3', 'name^2', '*']
     }
-    callback(undefined)
+
+    esClient.indices.exists({index: indexName}, function(err, exists) {
+      if(err || exists) {
+        return callback(err)
+      } else {
+        esClient.indices.create({index: indexName}, function(err) {
+          callback(err)
+        })
+      }
+    })
+
+
   })
 
   seneca.add({role: pluginName, cmd: 'save'}, function(args, callback) {
