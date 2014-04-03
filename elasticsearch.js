@@ -22,6 +22,7 @@ function search(options) {
     var indexes = {};
 
     seneca.add({role: pluginName, cmd: 'create-index'}, function(args, callback) {
+        console.log(args);
         var indexName = args.index;
 
         var fields = [];
@@ -56,7 +57,6 @@ function search(options) {
     });
 
     seneca.add({role: pluginName, cmd: 'save'}, function(args, callback) {
-
         assert.ok(args.data, 'missing args.data');
         var dataType = args.type || args.data.entity$;
         assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type');
