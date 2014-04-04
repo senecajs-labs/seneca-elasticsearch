@@ -24,13 +24,7 @@ function search(options) {
 
   var esClient = new elasticsearch.Client(connectionOptions);
 
-  seneca.add({role: pluginName, cmd: 'create-index'}, function(args, done) {
-    var indexName = args.index
-
-    ensureIndex(indexName)
-       .then(done.bind(null, null))
-       .catch(done);
-  });
+  seneca.add({role: pluginName, cmd: 'create-index'}, ensureIndex);
 
   seneca.add({role: pluginName, cmd: 'save'}, function(args, callback) {
 
@@ -62,17 +56,26 @@ function search(options) {
     native: esClient
   };
 
-  function ensureIndex(indexName) {
-    return esClient.indices.exists({index: indexName}).then(onExists);
 
-    function onExists(err, exists) {
-      if (err || !exists) {
-        return esClient.indices.create({index: indexName});
+  // creates the index for us if it doesn't exist.
+  function ensureIndex(args, done) {
+    var indexName = args.index;
+    var indices = esClient.indices;
+
+    checkIndexFn(indexName)
+       .then(done.bind(null, null))
+       .catch(done);
+
+    function checkIndexFn(indexName) {
+      return indices.exists({index: indexName}).then(onExists);
+
+      function onExists(err, exists) {
+        if (err || !exists) {
+          return indices.create({index: indexName});
+        }
       }
     }
   }
-
-
 }
 
 module.exports = search
