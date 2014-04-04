@@ -1,50 +1,34 @@
-
 /* jshint indent: 2, asi: true */
-/* vim: noai:ts=2:sw=2 */
-
+// vim: noai:ts=2:sw=2
 
 var pluginName    = 'search'
 
+var _             = require('underscore');
 var assert        = require('assert')
 var elasticsearch = require('elasticsearch')
 
 function search(options) {
+  var options = options || {};
 
-  var seneca = this
+  var seneca = this;
 
-  options = options || {}
+  // Apply defaults individually,
+  // instead of all-or-nothing.
+  var connectionOptions = options.connection || {};
 
-  var connectionOptions = options.connection || {
+  _.defaults(connectionOptions, {
     host: 'localhost:9200',
     sniffOnStart: true,
     sniffInterval: 300000,
     log: 'error'
-  }
+  });
 
-  var esClient = new elasticsearch.Client(connectionOptions)
+  var esClient = new elasticsearch.Client(connectionOptions);
 
   var indexes = {}
 
   seneca.add({role: pluginName, cmd: 'create-index'}, function(args, callback) {
     var indexName = args.index
-
-    var fields = []
-
-    if(args.fields) {
-      for(var i = 0 ; i < args.fields.length ; i++) {
-        var field = args.fields[i]
-        var suffix = ''
-        if(Number(field.priority) !== NaN && field.priority > 1) {
-          suffix = '^'+field.priority
-        }
-
-        fields.push(field.name + suffix)
-      }
-    }
-
-    indexes[indexName] = {
-      fields: fields.length > 0 ? fields : ['id^3', 'name^2', '*']
-    }
 
     esClient.indices.exists({index: indexName}, function(err, exists) {
       if(err || exists) {
@@ -55,7 +39,6 @@ function search(options) {
         })
       }
     })
-
 
   })
 
@@ -82,36 +65,6 @@ function search(options) {
 
   seneca.add({role: pluginName, cmd: 'delete'}, function(args, callback) {
     callback(undefined)
-  })
-
-  seneca.add({role: pluginName, cmd: 'search'}, function(args, callback) {
-
-    var indexName = args.index
-    var fields = indexes[indexName] ? indexes[indexName].fields : ['*']
-
-    var searchParams = {
-      index: indexName,
-      body: {
-        query: {
-          multi_match : {
-            query        : args.query,
-            type         : 'best_fields',
-            fields       : fields,
-            tie_breaker  : 0.3
-          }
-        }
-      }
-    }
-
-    if(args.type) {
-      search.type = args.type
-    }
-
-    esClient.search(searchParams).then(function (resp) {
-      callback(undefined, resp.hits.hits)
-    }, function (err) {
-      callback(err, undefined)
-    });
   })
 
   return {

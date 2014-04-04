@@ -1,101 +1,55 @@
-var assert         = require('assert')
-var elasticsearch  = require('elasticsearch')
-var esPlugin       = require('../elasticsearch.js')
+/* jshint indent: 2, asi: true, unused: false */
+/* global describe, it, before, beforeEach, after, afterEach */
+// vim: noai:ts=2:sw=2
+
+var assert         = require('assert');
+var elasticsearch  = require('elasticsearch');
+var esPlugin       = require('../elasticsearch.js');
+var _              = require('underscore');
 
 var seneca = require('seneca')()
 
 seneca.use(esPlugin, {refreshOnSave: true})
 
 describe('elasticsearch', function() {
-
   var indexName = 'idx1'
   var esClient = new elasticsearch.Client()
 
   after(function(done) {
-
-    esClient.indices.delete({index: indexName}, function(err) {
-      done(err)
-    })
-  })
+    esClient.indices.delete({index: indexName})
+    .then(done.bind(null, null))
+    .catch(done);
+  });
 
   it('create index', function(done) {
-    seneca.act({
-      role: 'search',
-      cmd: 'create-index',
-      index: indexName,
-      fields: [
-        {name: 'id', priority: 3},
-        {name: 'name'}
-      ]},
-      function(err) {
-        if(err) throw err
-        done()
-      }
-    )
-  })
+    var cmd = { role: 'search', cmd: 'create-index', index: indexName };
 
-  it('save entities', function(done) {
+    seneca.act(cmd, throwOnError(done));
+  });
 
-    seneca.act({
-      role: 'search',
-      cmd: 'save',
-      index: indexName,
-      type: 'type1',
-      data: {
-        id: 'abcd',
-        name: 'caramel'
-      }},
-      function(err) {
-        assert.ok(!err)
+  describe('saving', function() {
+    var baseCommand = { role: 'search', cmd: 'save', index: indexName, type: 'type1' };
 
-        seneca.act({
-          role: 'search',
-          cmd: 'save',
-          index: indexName,
-          type: 'type1',
-          data: {
-            id: 'caramel',
-            name: 'abcd'
-          }
-        },
-        function(err) {
-          assert.ok(!err)
-          done()
-        })
-      }
-    )
+    it('save entity 1', function(done) {
+      var command = { data: { id: 'abcd', name: 'caramel' } };
+      _.extend(command, baseCommand);
+        
+      seneca.act(command, throwOnError(done));
+    });
 
-  })
+    it('save entity 2', function(done) {
+      var command = { data: { id: 'caramel', name: 'abcd' } };
+      _.extend(command, baseCommand);
 
-  it('search default priority', function(done) {
-    seneca.act({
-        role: 'search',
-        cmd: 'search',
-        index: indexName,
-        query: 'abcd'
-      },
-      function(err, results) {
-        if(err) { return done(err) }
+      seneca.act(command, throwOnError(done));
+    });
+  });
+});
 
-        assert.ok(results, 'missing results')
-        assert.equal(results.length, 2)
+function throwOnError(done) {
+  return function(err) {
+    if (err) { throw err; }
+    done();
+  };
+}
 
-        var r0 = results[0]._source
-        assert.ok(r0)
-        assert.ok(r0.id, 'abcd')
-        assert.ok(r0.name, 'caramel')
-
-        var r1 = results[1]._source
-        assert.ok(r1)
-        assert.ok(r1.id, 'caramel')
-        assert.ok(r1.name, 'abcd')
-
-        assert.ok(results[0]._score > results[1]._score, 'scores should reflect the index priority')
-
-        done()
-      }
-    )
-  })
-
-
-})
