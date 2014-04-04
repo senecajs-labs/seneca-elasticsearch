@@ -24,7 +24,8 @@
   "dependencies": {
     "elasticsearch": "2.1.0",
     "elastic.js": "^1.1.1",
-    "underscore": "^1.6.0"
+    "underscore": "^1.6.0",
+    "async": "^0.6.2"
   },
   "peerDependencies": {
     "seneca": "*"
