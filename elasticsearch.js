@@ -9,7 +9,6 @@ var elasticsearch = require('elasticsearch')
 
 function search(options) {
   var options = options || {};
-
   var seneca = this;
 
   // Apply defaults individually,
@@ -17,10 +16,10 @@ function search(options) {
   var connectionOptions = options.connection || {};
 
   _.defaults(connectionOptions, {
-    host: 'localhost:9200',
-    sniffOnStart: true,
-    sniffInterval: 300000,
-    log: 'error'
+    host          : 'localhost:9200',
+    sniffInterval : 300000,
+    sniffOnStart  : true,
+    log           : 'error'
   });
 
   var esClient = new elasticsearch.Client(connectionOptions);

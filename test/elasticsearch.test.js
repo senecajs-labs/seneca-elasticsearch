@@ -7,9 +7,9 @@ var elasticsearch  = require('elasticsearch');
 var esPlugin       = require('../elasticsearch.js');
 var _              = require('underscore');
 
-var seneca = require('seneca')()
+var seneca = require('seneca')();
 
-seneca.use(esPlugin, {refreshOnSave: true})
+seneca.use(esPlugin, {refreshOnSave: true});
 
 describe('elasticsearch', function() {
   var indexName = 'idx1'
@@ -17,8 +17,8 @@ describe('elasticsearch', function() {
 
   after(function(done) {
     esClient.indices.delete({index: indexName})
-    .then(done.bind(null, null))
-    .catch(done);
+      .then(done.bind(null, null))
+      .catch(done);
   });
 
   it('create index', function(done) {
