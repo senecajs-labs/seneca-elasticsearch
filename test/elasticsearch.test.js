@@ -69,6 +69,27 @@ describe('records', function() {
     }
   });
 
+  it('search', function(done) {
+    var command = { role: 'search', cmd: 'search', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd' };
+
+    seneca.act(command, searchCb);
+
+    function searchCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.hits);
+      resp.hits.total.should.eql(1)
+
+      var result = resp.hits.hits[0]
+      should.exist(result._source);
+      result._source.id.should.eql('abcd');
+      result._source.name.should.eql('caramel');
+
+      done();
+    }
+  });
+
+
   it('remove', function(done) {
     var command = { role: 'search', cmd: 'remove', index: indexName, type: 'type1' };
     command.data = { id: 'abcd' };

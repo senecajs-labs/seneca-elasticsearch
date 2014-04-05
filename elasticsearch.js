@@ -7,6 +7,7 @@ var _             = require('underscore');
 var assert        = require('assert');
 var async         = require('async');
 var elasticsearch = require('elasticsearch');
+var ejs           = require('elastic.js');
 
 function search(options, register) {
   var options = options || {};
@@ -35,6 +36,10 @@ function search(options, register) {
 
   seneca.add({role: pluginName, cmd: 'load'},
     async.seq(ensureIndex, populateRequest, loadRecord));
+
+  seneca.add({role: pluginName, cmd: 'search'}, async.seq(
+      ensureIndex, populateRequest, populateSearch,
+      populateSearchBody, doSearch));
 
   seneca.add({role: pluginName, cmd: 'remove'},
     async.seq(ensureIndex, populateRequest, removeRecord));
@@ -102,11 +107,26 @@ function search(options, register) {
     esClient.delete(args.request, cb);
   }
 
+  function doSearch(args, cb) {
+    esClient.search(args.request, cb);
+  }
+
   /**
   * Constructing requests.
   */
   function populateBody(args, cb) {
     args.request.body = args.data;
+    cb(null, args);
+  }
+
+  function populateSearch(args, cb) {
+    args.searchRequest = ejs.Request()
+        .query(ejs.MatchAllQuery());
+    cb(null, args);
+  }
+
+  function populateSearchBody(args, cb) {
+    args.request.body = args.searchRequest;
     cb(null, args);
   }
 
@@ -125,6 +145,7 @@ function search(options, register) {
 
     cb(null, args);
   }
+
 
   // ensures callback is called consistently
   function passArgs(args, cb) {
