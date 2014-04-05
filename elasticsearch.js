@@ -31,8 +31,17 @@ function search(options) {
   seneca.add({role: pluginName, cmd: 'delete-index'},
     async.seq(ensureIndex, deleteIndex));
 
-  seneca.add({role: pluginName, cmd: 'save'}, 
+  seneca.add({role: pluginName, cmd: 'save'},
     async.seq(ensureIndex, populateRequest, populateBody, saveRecord));
+
+  seneca.add({role: pluginName, cmd: 'load'},
+    async.seq(ensureIndex, populateRequest, loadRecord));
+
+  seneca.add({role: pluginName, cmd: 'remove'},
+    async.seq(ensureIndex, populateRequest, removeRecord));
+
+
+  //seneca.add({role:'entity',cmd:'save'},cmds.save)
 
   return {
     name: pluginName,
@@ -75,7 +84,7 @@ function search(options) {
   }
 
   function loadRecord(args, cb) {
-    esClient.index(args.request, cb);
+    esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {

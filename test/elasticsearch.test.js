@@ -3,6 +3,7 @@
 // vim: noai:ts=2:sw=2
 
 var assert         = require('assert');
+var should         = require('should');
 var elasticsearch  = require('elasticsearch');
 var esPlugin       = require('../elasticsearch.js');
 var _              = require('underscore');
@@ -31,16 +32,10 @@ describe('indexes', function() {
 
 });
 
-
 describe('records', function() {
   var indexName = 'idx2';
   var esClient = new elasticsearch.Client();
 
-  before(function(done) {
-    esClient.indices.create({index: indexName})
-      .then(done.bind(null, null))
-      .catch(done);
-  });
 
   after(function(done) {
     esClient.indices.delete({index: indexName})
@@ -53,6 +48,37 @@ describe('records', function() {
     command.data = { id: 'abcd', name: 'caramel' };
       
     seneca.act(command, throwOnError(done));
+  });
+
+  it('load', function(done) {
+    var command = { role: 'search', cmd: 'load', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd' };
+
+    seneca.act(command, loadCb);
+
+    function loadCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.exists);
+      should.exist(resp._source);
+
+      var src = resp._source;
+      src.id.should.eql('abcd');
+      src.name.should.eql('caramel');
+
+      done();
+    }
+  });
+
+  it('remove', function(done) {
+    var command = { role: 'search', cmd: 'remove', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd' };
+    seneca.act(command, removeCb);
+
+    function removeCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.ok);
+      done();
+    }
   });
 
 });

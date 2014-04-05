@@ -31,6 +31,7 @@
     "seneca": "*"
   },
   "devDependencies": {
-    "seneca": "^0.5.15"
+    "seneca": "^0.5.15",
+    "should": "^3.2.0"
   }
 }
