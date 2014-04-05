@@ -24,7 +24,6 @@ function search(options) {
   });
 
   var esClient = new elasticsearch.Client(connectionOptions);
-  var indices = esClient.indices;
 
   seneca.add({role: pluginName, cmd: 'create-index'}, ensureIndex);
   seneca.add({role: pluginName, cmd: 'has-index'}, hasIndex);
@@ -40,13 +39,25 @@ function search(options) {
   seneca.add({role: pluginName, cmd: 'remove'},
     async.seq(ensureIndex, populateRequest, removeRecord));
 
-
-  //seneca.add({role:'entity',cmd:'save'},cmds.save)
+  seneca.add({role:'entity',cmd:'save'}, function(args, cb) {
+    console.log('reached it');
+    cb('error');
+  });
 
   return {
     name: pluginName,
     native: esClient
   };
+
+  function prior(args, done) {
+    var priorFn = this.prior;
+    var ent = args.ent;
+
+    var _args = { data: ent };
+    _.defaults(_args, args);
+
+    prior(_args, done);
+  }
 
   /*
   * Index management.
