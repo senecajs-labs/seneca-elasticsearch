@@ -8,7 +8,7 @@ var assert        = require('assert');
 var async         = require('async');
 var elasticsearch = require('elasticsearch');
 
-function search(options) {
+function search(options, register) {
   var options = options || {};
   var seneca = this;
 
@@ -44,10 +44,10 @@ function search(options) {
     cb('error');
   });
 
-  return {
+  register(null, {
     name: pluginName,
     native: esClient
-  };
+  });
 
   function prior(args, done) {
     var priorFn = this.prior;
