@@ -45,9 +45,19 @@ function search(options, register) {
     async.seq(ensureIndex, populateRequest, removeRecord));
 
   seneca.add({role:'entity',cmd:'save'}, function(args, cb) {
-    console.log('reached it');
-    cb('error');
+    console.log('entity to index:'+args.ent);
+
+    var cmd = { role: pluginName, cmd: 'save', index: args.index };
+    var datafields = args.ent.data$();
+
+    seneca.add( datafields, function( err ) {
+      if( err ) { return seneca.fail(err); }
+    });
+
+    this.prior( args, cb )
   });
+
+
 
   register(null, {
     name: pluginName,

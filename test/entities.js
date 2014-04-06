@@ -10,8 +10,10 @@ var _              = require('underscore');
 
 var seneca = require('seneca')();
 
-seneca.use(esPlugin, {refreshOnSave: true});
+
 seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+seneca.use('..', {refreshOnSave: true});
+console.log( seneca.actroutes());
 
 describe('entities', function() {
   before(function() {
