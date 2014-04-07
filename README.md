@@ -6,94 +6,102 @@ rest of the api assumes you know what you are doing.
 
 ## Setup
 
-    // important to use a store definition BEFORE including this module
-    // to automatically index entities
+```JavaScript
+// important to use a store definition BEFORE including this module
+// to automatically index entities
 
-    seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
 
-    seneca.use('seneca-elasticsearch', {
-      refreshOnSave : true,                 // highly recommended
-      fields        : ['jobTitle'],         // specify fields, id will always be added.
-      connection    : { index : indexName } // customize index name
-    });
+seneca.use('seneca-elasticsearch', {
+  refreshOnSave : true,                 // highly recommended
+  fields        : ['jobTitle'],         // specify fields, id will always be added.
+  connection    : { index : indexName } // customize index name
+});
 
-    seneca.ready(function(err) {
-        if (err) { return console.log(err); }
+seneca.ready(function(err) {
+    if (err) { return console.log(err); }
 
-        // your code here.
-        // It will have created the index for you automatically.
+    // your code here.
+    // It will have created the index for you automatically.
 
-    });
+});
+```
 
 
 ## index management api
 
-    // check for index
-    seneca.act({role: 'search', cmd: 'create-index', index: 'myIndex'}, callback);
+```JavaScript
+// check for index
+seneca.act({role: 'search', cmd: 'create-index', index: 'myIndex'}, callback);
 
-    // create an index (checks first)
-    seneca.act({role: 'search', cmd: 'create-index', index: 'myIndex'}, callback);
+// create an index (checks first)
+seneca.act({role: 'search', cmd: 'create-index', index: 'myIndex'}, callback);
 
-    // delete an index (checks first)
-    seneca.act({role: 'search', cmd: 'delete-index', index: 'myIndex'}, callback);
+// delete an index (checks first)
+seneca.act({role: 'search', cmd: 'delete-index', index: 'myIndex'}, callback);
+```
 
 ## record management api
 
-    // index or update a record
-    seneca.act({
-        role: 'search',
-        cmd: 'save',
-        index: 'myIndex',
-        type: 'myType',
-        data: {
-            id: 'myId', // only required field
-            /*  rest of object here */
-        }
-    }, callback);
+```JavaScript
+// index or update a record
+seneca.act({
+    role: 'search',
+    cmd: 'save',
+    index: 'myIndex',
+    type: 'myType',
+    data: {
+        id: 'myId', // only required field
+        /*  rest of object here */
+    }
+}, callback);
 
-    // remove a record
-    seneca.act({
-        role: 'search',
-        cmd: 'remove',
-        index: 'myIndex',
-        type: 'myType',
-        data: { id: 'myId' }
-    }, callback);
+// remove a record
+seneca.act({
+    role: 'search',
+    cmd: 'remove',
+    index: 'myIndex',
+    type: 'myType',
+    data: { id: 'myId' }
+}, callback);
 
 
-    // load a record
-    seneca.act({
-        role: 'search',
-        cmd: 'load',
-        index: 'myIndex',
-        type: 'myType',
-        data: { id: 'myId' }
-    }, callback);
+// load a record
+seneca.act({
+    role: 'search',
+    cmd: 'load',
+    index: 'myIndex',
+    type: 'myType',
+    data: { id: 'myId' }
+}, callback);
+```
 
 ## search api
 
-    // return all records
-    seneca.act({
-        role: 'search',
-        cmd: 'search',
-        index: 'myIndex',
-        type: 'myType'
-    }, callback);
+```JavaScript
+// return all records
+seneca.act({
+    role: 'search',
+    cmd: 'search',
+    index: 'myIndex',
+    type: 'myType'
+}, callback);
 
-    // match lucene query string
-    seneca.act({
-        role: 'search',
-        cmd: 'search',
-        index: 'myIndex',
-        type: 'myType',
-        search: "query string here",
-        
-    }, callback);
-
-
-    // match elasticsearch JSON query
+// match lucene query string
+seneca.act({
+    role: 'search',
+    cmd: 'search',
+    index: 'myIndex',
+    type: 'myType',
+    search: "query string here",
     
-    // TODO: 
-    // See tests/search.js for more about this.
-    // This is most likely what you will want
-    // to be using.
+}, callback);
+
+
+// match elasticsearch JSON query
+
+// TODO: 
+// See tests/search.js for more about this.
+// This is most likely what you will want
+// to be using.
+```
