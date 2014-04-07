@@ -5,17 +5,25 @@
 var assert         = require('assert');
 var should         = require('should');
 var elasticsearch  = require('elasticsearch');
-var esPlugin       = require('../elasticsearch.js');
 var _              = require('underscore');
 
 var seneca = require('seneca')();
 
-
-seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
-seneca.use('..', {refreshOnSave: true});
-console.log( seneca.actroutes());
+//seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+seneca.use('..', {
+  refreshOnSave: true,
+  connection: { index: 'seneca-test' }
+});
 
 describe('entities', function() {
+  var esClient = new elasticsearch.Client();
+
+  after(function(done) {
+    esClient.indices.delete({index: 'seneca-test'})
+      .then(done.bind(null, null))
+      .catch(done);
+  });
+
   before(function() {
     var foo = this.foo = seneca.make$('foo');
     foo.id = 'john doe';

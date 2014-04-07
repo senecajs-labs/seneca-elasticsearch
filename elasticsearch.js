@@ -20,6 +20,7 @@ function search(options, register) {
   _.defaults(connectionOptions, {
     host          : 'localhost:9200',
     sniffInterval : 300000,
+    index         : 'seneca',
     sniffOnStart  : true,
     log           : 'error'
   });
@@ -47,32 +48,49 @@ function search(options, register) {
   seneca.add({role:'entity',cmd:'save'}, function(args, cb) {
     console.log('entity to index:'+args.ent);
 
-    var cmd = { role: pluginName, cmd: 'save', index: args.index };
-    var datafields = args.ent.data$();
+    var prior = this.prior.bind(this);
 
-    seneca.add( datafields, function( err ) {
-      if( err ) { return seneca.fail(err); }
+    var data =  args.ent.data$();
+
+    var cmd  = {
+      role  : pluginName,
+      cmd   : 'save',
+      index : connectionOptions.index,
+      type  : data.entity$.name,
+      data  : data
+    };
+
+    seneca.act( cmd, function( err ) {
+      if(err) { return seneca.fail(err); }
+      prior(args, cb);
     });
 
-    this.prior( args, cb )
   });
 
+  seneca.add({role:'entity',cmd:'remove'}, function(args, cb) {
+    console.log('entity to remove:'+args.ent.id);
 
+    var data =  args.ent.data$();
+    var prior = this.prior.bind(this);
+
+    var cmd  = {
+      role  : pluginName,
+      cmd   : 'remove',
+      index : connectionOptions.index,
+      type  : data.entity$.name,
+      data  : { id: data.id }
+    };
+
+    seneca.act( cmd, function( err ) {
+      if(err) { return seneca.fail(err); }
+      prior(args, cb);
+    });
+  });
 
   register(null, {
     name: pluginName,
     native: esClient
   });
-
-  function prior(args, done) {
-    var priorFn = this.prior;
-    var ent = args.ent;
-
-    var _args = { data: ent };
-    _.defaults(_args, args);
-
-    prior(_args, done);
-  }
 
   /*
   * Index management.
