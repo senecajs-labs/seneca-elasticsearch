@@ -59,6 +59,10 @@ describe('search', function() {
 
   it('can pass a complex query', function(done) {
     var command = { index: indexName, type: 'foobar', data: {} };
+
+    // Use elastic.js to show all men over 30
+    // see: http://www.fullscale.co/elasticjs/
+
     var bq = ejs.BoolQuery()
       .must(ejs.RangeQuery('age').gt(30))
       .must(ejs.MatchQuery('gender', 'male'));
