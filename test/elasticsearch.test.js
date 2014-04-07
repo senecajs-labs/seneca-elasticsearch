@@ -1,101 +1,113 @@
-var assert         = require('assert')
-var elasticsearch  = require('elasticsearch')
-var esPlugin       = require('../elasticsearch.js')
+/* jshint indent: 2, asi: true, unused: false */
+/* global describe, it, before, beforeEach, after, afterEach */
+// vim: noai:ts=2:sw=2
 
-var seneca = require('seneca')()
+var assert         = require('assert');
+var should         = require('should');
+var elasticsearch  = require('elasticsearch');
+var esPlugin       = require('../elasticsearch.js');
+var _              = require('underscore');
 
-seneca.use(esPlugin, {refreshOnSave: true})
+var seneca = require('seneca')();
 
-describe('elasticsearch', function() {
+seneca.use(esPlugin, {refreshOnSave: true});
 
-  var indexName = 'idx1'
-  var esClient = new elasticsearch.Client()
+before(seneca.ready.bind(seneca));
 
-  after(function(done) {
-
-    esClient.indices.delete({index: indexName}, function(err) {
-      done(err)
-    })
-  })
+describe('indexes', function() {
+  var indexName = 'idx1';
 
   it('create index', function(done) {
-    seneca.act({
-      role: 'search',
-      cmd: 'create-index',
-      index: indexName,
-      fields: [
-        {name: 'id', priority: 3},
-        {name: 'name'}
-      ]},
-      function(err) {
-        if(err) throw err
-        done()
-      }
-    )
-  })
+    var cmd = { role: 'search', cmd: 'create-index', index: indexName };
+    seneca.act(cmd, throwOnError(done));
+  });
 
-  it('save entities', function(done) {
+  it('index exists', function(done) {
+    var cmd = { role: 'search', cmd: 'has-index', index: indexName };
+    seneca.act(cmd, throwOnError(done));
+  });
 
-    seneca.act({
-      role: 'search',
-      cmd: 'save',
-      index: indexName,
-      type: 'type1',
-      data: {
-        id: 'abcd',
-        name: 'caramel'
-      }},
-      function(err) {
-        assert.ok(!err)
+  it('index delete', function(done) {
+    var cmd = { role: 'search', cmd: 'delete-index', index: indexName };
+    seneca.act(cmd, throwOnError(done));
+  });
 
-        seneca.act({
-          role: 'search',
-          cmd: 'save',
-          index: indexName,
-          type: 'type1',
-          data: {
-            id: 'caramel',
-            name: 'abcd'
-          }
-        },
-        function(err) {
-          assert.ok(!err)
-          done()
-        })
-      }
-    )
+});
 
-  })
-
-  it('search default priority', function(done) {
-    seneca.act({
-        role: 'search',
-        cmd: 'search',
-        index: indexName,
-        query: 'abcd'
-      },
-      function(err, results) {
-        if(err) { return done(err) }
-
-        assert.ok(results, 'missing results')
-        assert.equal(results.length, 2)
-
-        var r0 = results[0]._source
-        assert.ok(r0)
-        assert.ok(r0.id, 'abcd')
-        assert.ok(r0.name, 'caramel')
-
-        var r1 = results[1]._source
-        assert.ok(r1)
-        assert.ok(r1.id, 'caramel')
-        assert.ok(r1.name, 'abcd')
-
-        assert.ok(results[0]._score > results[1]._score, 'scores should reflect the index priority')
-
-        done()
-      }
-    )
-  })
+describe('records', function() {
+  var indexName = 'idx2';
+  var esClient = new elasticsearch.Client();
 
 
-})
+  after(function(done) {
+    esClient.indices.delete({index: indexName})
+      .then(done.bind(null, null))
+      .catch(done);
+  });
+
+  it('save', function(done) {
+    var command = { role: 'search', cmd: 'save', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd', name: 'caramel' };
+      
+    seneca.act(command, throwOnError(done));
+  });
+
+  it('load', function(done) {
+    var command = { role: 'search', cmd: 'load', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd' };
+
+    seneca.act(command, loadCb);
+
+    function loadCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.exists);
+      should.exist(resp._source);
+
+      var src = resp._source;
+      src.id.should.eql('abcd');
+      src.name.should.eql('caramel');
+
+      done();
+    }
+  });
+
+  it('search', function(done) {
+    var command = { role: 'search', cmd: 'search', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd' };
+
+    seneca.act(command, searchCb);
+
+    function searchCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.hits);
+      resp.hits.total.should.eql(1)
+
+      var result = resp.hits.hits[0]
+      should.exist(result._source);
+      result._source.id.should.eql('abcd');
+      result._source.name.should.eql('caramel');
+
+      done();
+    }
+  });
+
+  it('remove', function(done) {
+    var command = { role: 'search', cmd: 'remove', index: indexName, type: 'type1' };
+    command.data = { id: 'abcd' };
+    seneca.act(command, removeCb);
+
+    function removeCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.ok);
+      done();
+    }
+  });
+
+});
+
+function throwOnError(done) {
+  return function(err) {
+    if (err) { throw err; }
+    done();
+  };
+}
