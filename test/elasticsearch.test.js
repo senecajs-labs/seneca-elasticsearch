@@ -12,6 +12,8 @@ var seneca = require('seneca')();
 
 seneca.use(esPlugin, {refreshOnSave: true});
 
+before(seneca.ready.bind(seneca));
+
 describe('indexes', function() {
   var indexName = 'idx1';
 
@@ -88,7 +90,6 @@ describe('records', function() {
       done();
     }
   });
-
 
   it('remove', function(done) {
     var command = { role: 'search', cmd: 'remove', index: indexName, type: 'type1' };

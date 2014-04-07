@@ -10,10 +10,13 @@ var _              = require('underscore');
 var seneca = require('seneca')();
 
 seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+
 seneca.use('..', {
   refreshOnSave: true,
   connection: { index: 'seneca-test' }
 });
+
+before(seneca.ready.bind(seneca));
 
 describe('entities', function() {
   var esClient = new elasticsearch.Client();
@@ -38,7 +41,6 @@ describe('entities', function() {
     this.foo.remove$(this.foo.id, throwOnError(done));
   });
 });
-
 
 function throwOnError(done) {
   return function(err) {

@@ -35,6 +35,9 @@ function search(options, register) {
   * in order, passing the same context to all of them.
   */
 
+  // startup
+  seneca.add({init: pluginName}, ensureIndex);
+
   // index events
   seneca.add({role: pluginName, cmd: 'create-index'}, ensureIndex);
 
@@ -45,18 +48,16 @@ function search(options, register) {
 
   // data events
   seneca.add({role: pluginName, cmd: 'save'},
-    async.seq(ensureIndex, populateRequest,
-      populateBody, saveRecord));
+    async.seq(populateRequest, populateBody, saveRecord));
 
   seneca.add({role: pluginName, cmd: 'load'},
-    async.seq(ensureIndex, populateRequest, loadRecord));
+    async.seq(populateRequest, loadRecord));
 
   seneca.add({role: pluginName, cmd: 'search'},
-    async.seq(ensureIndex, populateRequest,
-      populateSearch, populateSearchBody, doSearch));
+    async.seq(populateRequest, populateSearch, populateSearchBody, doSearch));
 
   seneca.add({role: pluginName, cmd: 'remove'},
-    async.seq(ensureIndex, populateRequest, removeRecord));
+    async.seq(populateRequest, removeRecord));
 
   // entity events
   seneca.add({role:'entity',cmd:'save'},
@@ -118,6 +119,10 @@ function search(options, register) {
 
   // creates the index for us if it doesn't exist.
   function ensureIndex(args, cb) {
+    args.index = args.index || connectionOptions.index;
+
+    assert.ok(args.index, 'missing args.index');
+
     hasIndex(args, onExists);
 
     function onExists(err, exists) {
@@ -133,14 +138,17 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
+    args.request.id = args.data.id;
     esClient.index(args.request, cb);
   }
 
   function loadRecord(args, cb) {
+    args.request.id = args.data.id;
     esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {
+    args.request.id = args.data.id;
     esClient.delete(args.request, cb);
   }
 
@@ -191,7 +199,6 @@ function search(options, register) {
     args.request = {
       index: args.index,
       type: dataType,
-      id: args.data.id,
       refresh: options.refreshOnSave,
     };
 
