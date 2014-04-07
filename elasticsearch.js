@@ -105,9 +105,18 @@ function search(options, register) {
     });
   }
 
-  function pickFields(fields) {
-    assert(fields, "missing fields");
+  function pickFields(args, cb) {
+    var fields = options.fields || false;
 
+    var data = args.ent.data$();
+
+    if (fields) {
+      fields.push('id'); // always have an id field
+      data = _.pick.apply(_, [data, fields]);
+    }
+
+    cb.entityData = data;
+    cb(null, args);
   }
 
   /*
