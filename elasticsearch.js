@@ -185,10 +185,17 @@ function search(options, register) {
   }
 
   function populateSearch(args, cb) {
-    var defaultSearch = ejs.Request()
-      .query(ejs.MatchAllQuery());
+    var _search = args.search;
 
-    args.searchRequest = args.search || defaultSearch;
+    if (!_search) {
+      var _query = (args.q && _.isString(args.q) ?
+        ejs.QueryStringQuery(args.q) :
+        ejs.MatchAllQuery());
+
+      _search = JSON.parse(ejs.Request().query(_query).toString());
+    }
+
+    args.searchRequest = _search;
 
     cb(null, args);
   }

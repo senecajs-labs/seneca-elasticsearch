@@ -7,25 +7,25 @@ var should         = require('should');
 var elasticsearch  = require('elasticsearch');
 var bulkFixture    = require('./fixtures/bulk.json');
 var _              = require('underscore');
+var ejs            = require('elastic.js');
 
 var seneca = require('seneca')();
 
 
+var indexName = 'seneca-test-search';
+
 seneca.use('..', {
   refreshOnSave: true,
-  connection: { index: 'seneca-search-test' }
+  connection: { index: indexName }
 });
 
 before(seneca.ready.bind(seneca));
 describe('search', function() {
   var esClient = new elasticsearch.Client();
   var pin = seneca.pin({role: 'search', cmd: '*'});
-  var indexName = 'seneca-search-test';
 
   before(function(done) {
-    esClient.bulk({body: bulkFixture})
-      .then(done.bind(null, null))
-      .catch(done);
+    esClient.bulk({body: bulkFixture, refresh: true}, throwOnError(done));
   });
 
   it('can match all results', function(done) {
@@ -35,26 +35,54 @@ describe('search', function() {
 
     function searchCb(err, resp) {
       if (err) { throw err; }
-      console.log(resp);
       assert.ok(resp.hits);
-      resp.hits.total.should.eql(1)
-
-      var result = resp.hits.hits[0]
-      should.exist(result._source);
-      result._source.id.should.eql('abcd');
-      result._source.name.should.eql('caramel');
-
+      resp.hits.total.should.eql(7)
       done();
     }
 
   });
-/*
-  after(function(done) {
-    esClient.indices.delete({index: 'seneca-search-test'})
-      .then(done.bind(null, null))
-      .catch(done);
+
+  it('can match a string', function(done) {
+    var command = { index: indexName, type: 'foobar', data: {} };
+    command.q = "harveysanders@vicon.com";
+
+    pin.search(command, searchCb);
+
+    function searchCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.hits);
+      resp.hits.total.should.eql(1)
+      done();
+    }
+
   });
-*/
+
+  it('can pass a complex query', function(done) {
+    var command = { index: indexName, type: 'foobar', data: {} };
+    var bq = ejs.BoolQuery()
+      .must(ejs.RangeQuery('age').gt(30))
+      .must(ejs.MatchQuery('gender', 'male'));
+
+    var _search = ejs.Request().query(bq);
+
+    //TODO: this shouldn't be necessary, but for some reason it is.
+    command.search = JSON.parse(_search.toString());
+
+    pin.search(command, searchCb);
+
+    function searchCb(err, resp) {
+      if (err) { throw err; }
+      assert.ok(resp.hits);
+      resp.hits.total.should.eql(2)
+      done();
+    }
+
+  });
+
+
+  after(function(done) {
+    esClient.indices.delete({index: indexName}, throwOnError(done));
+  });
 });
 
 function throwOnError(done) {
