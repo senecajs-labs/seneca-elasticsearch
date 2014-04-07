@@ -156,6 +156,7 @@ function search(options, register) {
   */
   function saveRecord(args, cb) {
     args.request.id = args.data.id;
+
     esClient.index(args.request, cb);
   }
 
