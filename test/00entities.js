@@ -9,7 +9,7 @@ var _              = require('underscore');
 
 var seneca = require('seneca')();
 
-//seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
 seneca.use('..', {
   refreshOnSave: true,
   connection: { index: 'seneca-test' }

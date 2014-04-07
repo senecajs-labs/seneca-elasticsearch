@@ -60,10 +60,10 @@ function search(options, register) {
 
   // entity events
   seneca.add({role:'entity',cmd:'save'},
-    async.seq(populateCommand, entitySave, entityAct));
+    async.seq(populateCommand, entitySave, entityPrior, entityAct));
 
   seneca.add({role:'entity',cmd:'remove'},
-    async.seq(populateCommand, entityRemove, entityAct));
+    async.seq(populateCommand, entityRemove, entityPrior, entityAct));
 
   register(null, {
     name: pluginName,
@@ -89,13 +89,15 @@ function search(options, register) {
     cb(null, args);
   }
 
+  function entityPrior(args, cb) {
+    this.prior(args, passArgs(args, cb));
+  }
+
   function entityAct(args, cb) {
     assert(args.command, "missing args.command");
 
-    var prior = this.prior.bind(this);
     seneca.act( args.command, function( err ) {
       if(err) { return seneca.fail(err); }
-      prior(args, cb);
     });
   }
 
