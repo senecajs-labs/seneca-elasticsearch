@@ -17,6 +17,9 @@ function search(options, register) {
   // instead of all-or-nothing.
   var connectionOptions = options.connection || {};
 
+  // Which fields to let through
+  var fieldOptions = options.fields || ['id'];
+
   _.defaults(connectionOptions, {
     host          : 'localhost:9200',
     sniffInterval : 300000,
@@ -97,9 +100,14 @@ function search(options, register) {
   function entityAct(args, cb) {
     assert(args.command, "missing args.command");
 
-    seneca.act( args.command, function( err ) {
+    seneca.act(args.command, function( err ) {
       if(err) { return seneca.fail(err); }
     });
+  }
+
+  function pickFields(fields) {
+    assert(fields, "missing fields");
+
   }
 
   /*
