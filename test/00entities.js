@@ -31,7 +31,7 @@ describe('entities', function() {
 
   before(function() {
     var foo = this.foo = seneca.make$('foo');
-    foo.id = 'john doe';
+    foo.id$ = 'john doe';
     foo.jobTitle = 'important sounding title';
     foo.passHash = 'DO NOT INDEX!';
   });
@@ -44,7 +44,7 @@ describe('entities', function() {
   // need to debounce for 500ms to let the data get indexed.
   it('load', _.debounce(function(done) {
     var command = { role: 'search', cmd: 'load', index: indexName, type: 'foo' };
-    command.data = { id: 'john doe' };
+    command.data = { id$: 'john doe' };
 
     seneca.act(command, loadCb);
 
@@ -54,7 +54,7 @@ describe('entities', function() {
       should.exist(resp._source);
 
       var src = resp._source;
-      src.id.should.eql('john doe');
+      src._id.should.eql('john doe');
       src.jobTitle.should.eql('important sounding title');
       should.not.exist(src.passHash);
 
@@ -64,7 +64,7 @@ describe('entities', function() {
 
 
   it('should remove the entity', function(done) {
-    this.foo.remove$(this.foo.id, throwOnError(done));
+    this.foo.remove$(this.foo.id$, throwOnError(done));
   });
 });
 
