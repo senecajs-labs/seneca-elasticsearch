@@ -89,7 +89,7 @@ function search(options, register) {
     var prior = this.prior.bind(this);
 
     args.command.cmd = 'remove';
-    args.command.data = { id: args.ent.id };
+    args.command.data = { id: args.ent.id || args.ent.id$ };
     cb(null, args);
   }
 
@@ -155,18 +155,18 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
-    args.request.id = args.data.id;
+    args.request.id = args.data.id || args.ent.id$;
 
     esClient.index(args.request, cb);
   }
 
   function loadRecord(args, cb) {
-    args.request.id = args.data.id;
+    args.request.id = args.data.id || args.ent.id$;
     esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {
-    args.request.id = args.data.id;
+    args.request.id = args.data.id || args.ent.id$;
     esClient.delete(args.request, cb);
   }
 
