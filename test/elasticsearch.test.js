@@ -60,7 +60,7 @@ describe('records', function() {
 
     function loadCb(err, resp) {
       if (err) { throw err; }
-      assert.ok(resp.exists);
+      assert.ok(resp.found);
       should.exist(resp._source);
 
       var src = resp._source;
@@ -98,7 +98,7 @@ describe('records', function() {
 
     function removeCb(err, resp) {
       if (err) { throw err; }
-      assert.ok(resp.ok);
+      assert.ok(resp.found);
       done();
     }
   });
