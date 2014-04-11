@@ -222,7 +222,7 @@ function search(options, register) {
   }
 
   function populateRequest(args, cb) {
-    assert.ok(args.data, 'missing args.data');
+    assert.ok(args.data || args.type, 'missing args.data and args.type');
 
     var dataType = args.type || args.data.entity$;
     assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type');
