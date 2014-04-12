@@ -100,6 +100,8 @@ function search(options, register) {
   function entityAct(args, cb) {
     assert(args.command, "missing args.command");
 
+    args.command.data.id = args.ent.id;
+
     seneca.act(args.command, function( err ) {
       if(err) { return seneca.fail(err); }
     });
@@ -155,18 +157,22 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
-    args.request.id = args.data.id || args.ent.id$;
+    args.request.id = args.data.id;
+
+    if (args.request.id) {
+      args.request.method = 'put';
+    }
 
     esClient.index(args.request, cb);
   }
 
   function loadRecord(args, cb) {
-    args.request.id = args.data.id || args.ent.id$;
+    args.request.id = args.data.id;
     esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {
-    args.request.id = args.data.id || args.ent.id$;
+    args.request.id = args.data.id;
     esClient.delete(args.request, cb);
   }
 
@@ -216,7 +222,7 @@ function search(options, register) {
   }
 
   function populateRequest(args, cb) {
-    assert.ok(args.data, 'missing args.data');
+    assert.ok(args.data || args.type, 'missing args.data and args.type');
 
     var dataType = args.type || args.data.entity$;
     assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type');
