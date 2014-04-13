@@ -42,11 +42,15 @@ describe('entities', function() {
 
 
   // need to debounce for 500ms to let the data get indexed.
-  it('load', _.debounce(function(done) {
-    var command = { role: 'search', cmd: 'load', index: indexName, type: 'foo' };
-    command.data = { id$: 'john doe' };
+  it('load', function(done) {
 
-    seneca.act(command, loadCb);
+    _.delay(delayCb, 500);
+
+    function delayCb() {
+      var command = { role: 'search', cmd: 'load', index: indexName, type: 'foo' };
+      command.data = { id$: 'john doe' };
+      seneca.act(command, loadCb);
+    }
 
     function loadCb(err, resp) {
       if (err) { throw err; }
@@ -60,7 +64,7 @@ describe('entities', function() {
 
       done();
     }
-  }, 500));
+  });
 
 
   it('should remove the entity', function(done) {
