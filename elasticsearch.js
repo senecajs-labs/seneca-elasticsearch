@@ -238,7 +238,7 @@ function search(options, register) {
   // ensures callback is called consistently
   function passArgs(args, cb) {
     return function (err, resp) {
-      if (err) { console.error(err); }
+      if (err) { seneca.fail(err); }
 
       cb(err, args);
     }

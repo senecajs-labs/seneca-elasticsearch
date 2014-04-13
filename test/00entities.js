@@ -21,6 +21,7 @@ seneca.use('..', {
 before(seneca.ready.bind(seneca));
 describe('entities', function() {
   var foo = seneca.make$('foo');
+  var fooId = 'john doe';
   var esClient = new elasticsearch.Client();
 
   after(function(done) {
@@ -51,7 +52,7 @@ describe('entities', function() {
         cmd: 'load',
         index: indexName,
         type: 'foo',
-        id: foo.id$
+        id: fooId 
       };
       seneca.act(command, loadCb);
     }
@@ -79,7 +80,6 @@ describe('entities', function() {
 function throwOnError(done) {
   return function(err) {
     if (err) { throw err; }
-    console.log(arguments);
     done();
   };
 }
