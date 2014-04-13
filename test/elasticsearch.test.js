@@ -46,15 +46,25 @@ describe('records', function() {
   });
 
   it('save', function(done) {
-    var command = { role: 'search', cmd: 'save', index: indexName, type: 'type1' };
+    var command = {
+      role: 'search',
+      cmd: 'save',
+      index: indexName,
+      type: 'type1'
+    };
     command.data = { id: 'abcd', name: 'caramel' };
       
     seneca.act(command, throwOnError(done));
   });
 
   it('load', function(done) {
-    var command = { role: 'search', cmd: 'load', index: indexName, type: 'type1' };
-    command.data = { id: 'abcd' };
+    var command = {
+      role: 'search',
+      cmd: 'load',
+      index: indexName,
+      type: 'type1',
+      id: 'abcd'
+    };
 
     seneca.act(command, loadCb);
 
@@ -72,7 +82,12 @@ describe('records', function() {
   });
 
   it('search', function(done) {
-    var command = { role: 'search', cmd: 'search', index: indexName, type: 'type1' };
+    var command = {
+      role: 'search',
+      cmd: 'search',
+      index: indexName,
+      type: 'type1'
+    };
     command.data = { id: 'abcd' };
 
     seneca.act(command, searchCb);
@@ -92,8 +107,13 @@ describe('records', function() {
   });
 
   it('remove', function(done) {
-    var command = { role: 'search', cmd: 'remove', index: indexName, type: 'type1' };
-    command.data = { id: 'abcd' };
+    var command = {
+      role: 'search',
+      cmd: 'remove',
+      index: indexName,
+      type: 'type1',
+      id: 'abcd'
+    };
     seneca.act(command, removeCb);
 
     function removeCb(err, resp) {

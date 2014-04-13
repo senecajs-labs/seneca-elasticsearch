@@ -19,8 +19,8 @@ seneca.use('..', {
 });
 
 before(seneca.ready.bind(seneca));
-
 describe('entities', function() {
+  var foo = seneca.make$('foo');
   var esClient = new elasticsearch.Client();
 
   after(function(done) {
@@ -30,14 +30,13 @@ describe('entities', function() {
   });
 
   before(function() {
-    var foo = this.foo = seneca.make$('foo');
     foo.id$ = 'john doe';
     foo.jobTitle = 'important sounding title';
     foo.passHash = 'DO NOT INDEX!';
   });
 
   it('should save entity', function(done) {
-    this.foo.save$(throwOnError(done));
+    foo.save$(throwOnError(done));
   });
 
 
@@ -47,8 +46,13 @@ describe('entities', function() {
     _.delay(delayCb, 500);
 
     function delayCb() {
-      var command = { role: 'search', cmd: 'load', index: indexName, type: 'foo' };
-      command.data = { id$: 'john doe' };
+      var command = {
+        role: 'search',
+        cmd: 'load',
+        index: indexName,
+        type: 'foo',
+        id: foo.id$
+      };
       seneca.act(command, loadCb);
     }
 
@@ -68,13 +72,14 @@ describe('entities', function() {
 
 
   it('should remove the entity', function(done) {
-    this.foo.remove$(this.foo.id$, throwOnError(done));
+    foo.remove$(foo.id$, throwOnError(done));
   });
 });
 
 function throwOnError(done) {
   return function(err) {
     if (err) { throw err; }
+    console.log(arguments);
     done();
   };
 }

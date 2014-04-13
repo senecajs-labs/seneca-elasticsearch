@@ -17,11 +17,9 @@ function search(options, register) {
   // instead of all-or-nothing.
   var connectionOptions = options.connection || {};
 
-  // Which fields to let through
-  var fieldOptions = options.fields || ['id'];
 
   _.defaults(connectionOptions, {
-    host          : 'localhost:9200',
+    host          : '127.0.0.1:9200',
     sniffInterval : 300000,
     index         : 'seneca',
     sniffOnStart  : true,
@@ -86,7 +84,6 @@ function search(options, register) {
   }
 
   function entityRemove(args, cb) {
-    var prior = this.prior.bind(this);
 
     args.command.cmd = 'remove';
     args.command.data = { id: args.ent.id || args.ent.id$ };
@@ -163,22 +160,18 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
-    args.request.id = args.data.id;
-
-    if (args.request.id) {
-      args.request.method = 'put';
-    }
+    args.request.id = args.id || args.data.id;
 
     esClient.index(args.request, cb);
   }
 
   function loadRecord(args, cb) {
-    args.request.id = args.data.id;
+    args.request.id = args.id;
     esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {
-    args.request.id = args.data.id;
+    args.request.id = args.id;
     esClient.delete(args.request, cb);
   }
 
