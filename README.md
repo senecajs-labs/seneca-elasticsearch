@@ -50,8 +50,9 @@ seneca.act({
     cmd: 'save',
     index: 'myIndex',
     type: 'myType',
+    id: 'myId', // either this field
     data: {
-        id: 'myId', // only required field
+        _id: 'myId', // or this field
         /*  rest of object here */
     }
 }, callback);
@@ -62,7 +63,7 @@ seneca.act({
     cmd: 'remove',
     index: 'myIndex',
     type: 'myType',
-    data: { id: 'myId' }
+    id: 'myId'
 }, callback);
 
 
@@ -72,7 +73,7 @@ seneca.act({
     cmd: 'load',
     index: 'myIndex',
     type: 'myType',
-    data: { id: 'myId' }
+    id: 'myId'
 }, callback);
 ```
 
