@@ -94,16 +94,22 @@ function search(options, register) {
   }
 
   function entityPrior(args, cb) {
-    this.prior(args, passArgs(args, cb));
+    this.prior(args, function(err, result) {
+      cb(err, result, args);
+    });
   }
 
-  function entityAct(args, cb) {
+  function entityAct(entity, args, cb) {
     assert(args.command, "missing args.command");
 
     args.command.data.id = args.ent.id;
 
-    seneca.act(args.command, function( err ) {
-      if(err) { return seneca.fail(err); }
+    seneca.act(args.command, function( err, result ) {
+      if(err) {
+        return seneca.fail(err);
+      } else {
+        cb(undefined, entity);
+      }
     });
   }
 
