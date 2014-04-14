@@ -192,7 +192,9 @@ function search(options, register) {
   function removeRecord(args, cb) {
     // You need to be explicit when specifying id
     args.request.id = args.id;
-    esClient.delete(args.request, cb);
+    esClient.delete(args.request, function(err, result) {
+      cb(null, result);// swallow the error
+    });
   }
 
   function doSearch(args, cb) {
