@@ -88,6 +88,20 @@ function search(options, register) {
     cb(null, args);
   }
 
+  function pickFields(args, cb) {
+    var fields = options.fields || false;
+
+    var data = args.ent.data$();
+
+    if (fields) {
+      fields.push('_id');
+      data = _.pick.apply(_, [data, fields]);
+    }
+
+    args.entityData = data;
+    cb(null, args);
+  }
+
   function entitySave(args, cb) {
     args.ent.id$ = args.ent.id$ || args.ent._id || uuid.v4();
 
@@ -101,40 +115,26 @@ function search(options, register) {
   function entityRemove(args, cb) {
     args.command.cmd = 'remove';
     args.command.id = args.q.id;
-    seneca.log.error(args);
     cb(null, args);
   }
 
   function entityPrior(args, cb) {
     this.prior(args, function(err, result) {
-      cb(err, result, args);
+      args.entityResult = result;
+      cb(null, args);
     });
   }
 
-  function entityAct(entity, args, cb) {
+  function entityAct(args, cb) {
     assert(args.command, "missing args.command");
 
     seneca.act(args.command, function( err, result ) {
       if(err) {
         return seneca.fail(err);
       } else {
-        cb(null, entity);
+        cb(null, args.entityResult);
       }
     });
-  }
-
-  function pickFields(args, cb) {
-    var fields = options.fields || false;
-
-    var data = args.ent.data$();
-
-    if (fields) {
-      fields.push('_id');
-      data = _.pick.apply(_, [data, fields]);
-    }
-
-    args.entityData = data;
-    cb(null, args);
   }
 
   /*
@@ -173,17 +173,19 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
+    // We explicitly don't care about the seneca entity id$
     args.request.id = args.id || args.data._id;
-
     esClient.index(args.request, cb);
   }
 
   function loadRecord(args, cb) {
+    // You need to be explicit when specifying id
     args.request.id = args.id;
     esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {
+    // You need to be explicit when specifying id
     args.request.id = args.id;
     esClient.delete(args.request, cb);
   }

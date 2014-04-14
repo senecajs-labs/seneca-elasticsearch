@@ -42,9 +42,9 @@ describe('entities', function() {
   });
 
 
-  // need to debounce for 500ms to let the data get indexed.
   it.skip('load', function(done) {
 
+    // need to debounce for 500ms to let the data get indexed.
     _.delay(delayCb, 500);
 
     function delayCb() {
