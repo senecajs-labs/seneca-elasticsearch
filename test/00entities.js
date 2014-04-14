@@ -10,7 +10,6 @@ var _              = require('underscore');
 var seneca = require('seneca')();
 var indexName = 'seneca-test-entity';
 
-
 seneca.use('mem-store');
 
 seneca.use('..', {
@@ -48,10 +47,10 @@ describe('entities', function() {
   });
 
 
-  it.skip('load', function(done) {
+  it('load', function(done) {
 
-    // need to debounce for 500ms to let the data get indexed.
-    _.delay(delayCb, 500);
+    // need to debounce for 50ms to let the data get indexed.
+    _.delay(delayCb, 50);
 
     function delayCb() {
       var command = {
@@ -65,14 +64,17 @@ describe('entities', function() {
     }
 
     function loadCb(err, resp) {
-      if (err) { throw err; }
-      assert.ok(resp.exists);
+      if (err) { return done(err); }
+
+      assert.ok(resp.found);
       should.exist(resp._source);
+      resp._id.should.eql(fooId);
 
       var src = resp._source;
-      src._id.should.eql('john doe');
       src.jobTitle.should.eql('important sounding title');
       should.not.exist(src.passHash);
+      should.not.exist(src.id);
+      should.not.exist(src.entity$);
 
       done();
     }
@@ -86,7 +88,7 @@ describe('entities', function() {
 
 function throwOnError(done) {
   return function(err) {
-    if (err) { throw err; }
+    if (err) { return done(err); }
     done();
   };
 }
