@@ -11,7 +11,7 @@ var seneca = require('seneca')();
 var indexName = 'seneca-test-entity';
 
 
-seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+seneca.use('mem-store');
 
 seneca.use('..', {
   refreshOnSave: true,
