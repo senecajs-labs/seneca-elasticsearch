@@ -14,7 +14,11 @@ seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
 
 seneca.use('seneca-elasticsearch', {
   refreshOnSave : true,                 // highly recommended
-  fields        : ['jobTitle'],         // specify fields, id will always be added.
+
+  entities      : {                     // fields for each entity type to index
+    foo         : ['jobTitle']          // if not defined, no fields are indexed
+  },
+
   connection    : { index : indexName } // customize index name
 });
 
@@ -50,8 +54,9 @@ seneca.act({
     cmd: 'save',
     index: 'myIndex',
     type: 'myType',
+    id: 'myId', // requires either this id
     data: {
-        id: 'myId', // only required field
+        _id: 'myId', // or this id
         /*  rest of object here */
     }
 }, callback);
@@ -62,7 +67,7 @@ seneca.act({
     cmd: 'remove',
     index: 'myIndex',
     type: 'myType',
-    data: { id: 'myId' }
+    id: 'myId'
 }, callback);
 
 
@@ -72,7 +77,7 @@ seneca.act({
     cmd: 'load',
     index: 'myIndex',
     type: 'myType',
-    data: { id: 'myId' }
+    id: 'myId'
 }, callback);
 ```
 

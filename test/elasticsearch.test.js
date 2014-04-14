@@ -46,15 +46,25 @@ describe('records', function() {
   });
 
   it('save', function(done) {
-    var command = { role: 'search', cmd: 'save', index: indexName, type: 'type1' };
-    command.data = { id: 'abcd', name: 'caramel' };
+    var command = {
+      role: 'search',
+      cmd: 'save',
+      index: indexName,
+      type: 'type1'
+    };
+    command.data = { _id: 'abcd', name: 'caramel' };
       
     seneca.act(command, throwOnError(done));
   });
 
   it('load', function(done) {
-    var command = { role: 'search', cmd: 'load', index: indexName, type: 'type1' };
-    command.data = { id: 'abcd' };
+    var command = {
+      role: 'search',
+      cmd: 'load',
+      index: indexName,
+      type: 'type1',
+      id: 'abcd'
+    };
 
     seneca.act(command, loadCb);
 
@@ -62,9 +72,12 @@ describe('records', function() {
       if (err) { throw err; }
       assert.ok(resp.found);
       should.exist(resp._source);
+      should.exist(resp._id);
+
+      resp._id.should.eql('abcd');
 
       var src = resp._source;
-      src.id.should.eql('abcd');
+      src._id.should.eql('abcd');
       src.name.should.eql('caramel');
 
       done();
@@ -72,7 +85,12 @@ describe('records', function() {
   });
 
   it('search', function(done) {
-    var command = { role: 'search', cmd: 'search', index: indexName, type: 'type1' };
+    var command = {
+      role: 'search',
+      cmd: 'search',
+      index: indexName,
+      type: 'type1'
+    };
     command.data = { id: 'abcd' };
 
     seneca.act(command, searchCb);
@@ -84,7 +102,8 @@ describe('records', function() {
 
       var result = resp.hits.hits[0]
       should.exist(result._source);
-      result._source.id.should.eql('abcd');
+      result._id.should.eql('abcd');
+      result._source._id.should.eql('abcd');
       result._source.name.should.eql('caramel');
 
       done();
@@ -92,8 +111,13 @@ describe('records', function() {
   });
 
   it('remove', function(done) {
-    var command = { role: 'search', cmd: 'remove', index: indexName, type: 'type1' };
-    command.data = { id: 'abcd' };
+    var command = {
+      role: 'search',
+      cmd: 'remove',
+      index: indexName,
+      type: 'type1',
+      id: 'abcd'
+    };
     seneca.act(command, removeCb);
 
     function removeCb(err, resp) {

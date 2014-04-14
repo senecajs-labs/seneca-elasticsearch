@@ -8,6 +8,7 @@ var assert        = require('assert');
 var async         = require('async');
 var elasticsearch = require('elasticsearch');
 var ejs           = require('elastic.js');
+var uuid          = require('node-uuid');
 
 function search(options, register) {
   var options = options || {};
@@ -17,11 +18,9 @@ function search(options, register) {
   // instead of all-or-nothing.
   var connectionOptions = options.connection || {};
 
-  // Which fields to let through
-  var fieldOptions = options.fields || ['id'];
 
   _.defaults(connectionOptions, {
-    host          : 'localhost:9200',
+    host          : '127.0.0.1:9200',
     sniffInterval : 300000,
     index         : 'seneca',
     sniffOnStart  : true,
@@ -64,7 +63,7 @@ function search(options, register) {
 
   // entity events
   seneca.add({role:'entity',cmd:'save'},
-    async.seq(populateCommand, entitySave, entityPrior, entityAct));
+    async.seq(populateCommand, pickFields, entitySave, entityPrior, entityAct));
 
   seneca.add({role:'entity',cmd:'remove'},
     async.seq(populateCommand, entityRemove, entityPrior, entityAct));
@@ -77,54 +76,70 @@ function search(options, register) {
   /*
   * Entity management
   */
-  function entitySave(args, cb) {
-    args.command.cmd = 'save';
-    args.command.data = args.ent.data$();
 
-    // TODO: _.pick only the specified keys
+  function populateCommand(args, cb) {
+    args.entityData = args.ent.data$();
+    args.command = {
+      role  : pluginName,
+      index : connectionOptions.index,
+      type  : args.entityData.entity$.name,
+    }
+
+    cb(null, args);
+  }
+
+  function pickFields(args, cb) {
+    var data = args.ent.data$();
+
+    // allow per-entity field configuration
+    var _type = args.command.type;
+    var _entities = options.entities || {};
+    var _fields = _entities[_type] || [];
+
+    // always pass through _id if it exists
+    // TODO: reconsider this?
+    _fields.push('_id');
+
+
+    data = _.pick.apply(_, [data, _fields]);
+
+    args.entityData = data;
+    cb(null, args);
+  }
+
+  function entitySave(args, cb) {
+    args.ent.id$ = args.ent.id$ || args.ent._id || uuid.v4();
+
+    args.command.cmd = 'save';
+    args.command.data = args.entityData;
+    args.command.id = args.ent.id$;
+
     cb(null, args);
   }
 
   function entityRemove(args, cb) {
-    var prior = this.prior.bind(this);
-
     args.command.cmd = 'remove';
-    args.command.data = { id: args.ent.id || args.ent.id$ };
+    args.command.id = args.q.id;
     cb(null, args);
   }
 
   function entityPrior(args, cb) {
     this.prior(args, function(err, result) {
-      cb(err, result, args);
+      args.entityResult = result;
+      cb(null, args);
     });
   }
 
-  function entityAct(entity, args, cb) {
+  function entityAct(args, cb) {
     assert(args.command, "missing args.command");
-
-    args.command.data.id = args.ent.id;
 
     seneca.act(args.command, function( err, result ) {
       if(err) {
         return seneca.fail(err);
       } else {
-        cb(undefined, entity);
+        cb(null, args.entityResult);
       }
     });
-  }
-
-  function pickFields(args, cb) {
-    var fields = options.fields || false;
-
-    var data = args.ent.data$();
-
-    if (fields) {
-      fields.push('id'); // always have an id field
-      data = _.pick.apply(_, [data, fields]);
-    }
-
-    cb.entityData = data;
-    cb(null, args);
   }
 
   /*
@@ -163,18 +178,20 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
-    args.request.id = args.data.id || args.ent.id$;
-
+    // We explicitly don't care about the seneca entity id$
+    args.request.id = args.id || args.data._id;
     esClient.index(args.request, cb);
   }
 
   function loadRecord(args, cb) {
-    args.request.id = args.data.id || args.ent.id$;
+    // You need to be explicit when specifying id
+    args.request.id = args.id;
     esClient.get(args.request, cb);
   }
 
   function removeRecord(args, cb) {
-    args.request.id = args.data.id || args.ent.id$;
+    // You need to be explicit when specifying id
+    args.request.id = args.id;
     esClient.delete(args.request, cb);
   }
 
@@ -185,17 +202,6 @@ function search(options, register) {
   /**
   * Constructing requests.
   */
-
-  function populateCommand(args, cb) {
-    args.entityData = args.ent.data$();
-    args.command = {
-      role  : pluginName,
-      index : connectionOptions.index,
-      type  : args.entityData.entity$.name,
-    }
-
-    cb(null, args);
-  }
 
   function populateBody(args, cb) {
     args.request.body = args.data;
@@ -224,7 +230,7 @@ function search(options, register) {
   }
 
   function populateRequest(args, cb) {
-    assert.ok(args.data, 'missing args.data');
+    assert.ok(args.data || args.type, 'missing args.data and args.type');
 
     var dataType = args.type || args.data.entity$;
     assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type');
@@ -241,7 +247,7 @@ function search(options, register) {
   // ensures callback is called consistently
   function passArgs(args, cb) {
     return function (err, resp) {
-      if (err) { console.error(err); }
+      if (err) { return seneca.fail(err); }
 
       cb(err, args);
     }

@@ -10,17 +10,19 @@ var _              = require('underscore');
 var seneca = require('seneca')();
 var indexName = 'seneca-test-entity';
 
-seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
+seneca.use('mem-store');
 
 seneca.use('..', {
   refreshOnSave: true,
-  fields: ['jobTitle'],
+  entities: {
+    foo: ['jobTitle']
+  },
   connection: { index: indexName }
 });
 
-before(seneca.ready.bind(seneca));
-
 describe('entities', function() {
+  var fooId; // to hold the generated id
+  var foo = seneca.make$('foo');
   var esClient = new elasticsearch.Client();
 
   after(function(done) {
@@ -29,48 +31,63 @@ describe('entities', function() {
       .catch(done);
   });
 
-  before(function() {
-    var foo = this.foo = seneca.make$('foo');
-    foo.id$ = 'john doe';
+  before(function(done) {
     foo.jobTitle = 'important sounding title';
     foo.passHash = 'DO NOT INDEX!';
+    seneca.ready(done);
   });
 
   it('should save entity', function(done) {
-    this.foo.save$(throwOnError(done));
+    foo.save$(function(err, result) {
+      if (err) { return seneca.fail(err); }
+
+      fooId = result.id;
+      done(null);
+    });
   });
 
+  it('load', function(done) {
 
-  // need to debounce for 500ms to let the data get indexed.
-  it('load', _.debounce(function(done) {
-    var command = { role: 'search', cmd: 'load', index: indexName, type: 'foo' };
-    command.data = { id$: 'john doe' };
+    // need to debounce for 50ms to let the data get indexed.
+    _.delay(delayCb, 50);
 
-    seneca.act(command, loadCb);
+    function delayCb() {
+      var command = {
+        role: 'search',
+        cmd: 'load',
+        index: indexName,
+        type: 'foo',
+        id: fooId 
+      };
+      seneca.act(command, loadCb);
+    }
 
     function loadCb(err, resp) {
-      if (err) { throw err; }
-      assert.ok(resp.exists);
+      if (err) { return done(err); }
+
+      assert.ok(resp.found);
       should.exist(resp._source);
+      resp._id.should.eql(fooId);
 
       var src = resp._source;
-      src._id.should.eql('john doe');
       src.jobTitle.should.eql('important sounding title');
       should.not.exist(src.passHash);
+      should.not.exist(src.id);
+      should.not.exist(src.entity$);
 
       done();
     }
-  }, 500));
+  });
 
 
   it('should remove the entity', function(done) {
-    this.foo.remove$(this.foo.id$, throwOnError(done));
+    foo.remove$(fooId, throwOnError(done));
   });
 });
 
 function throwOnError(done) {
   return function(err) {
-    if (err) { throw err; }
+    if (err) { return done(err); }
     done();
   };
 }
