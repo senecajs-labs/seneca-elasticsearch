@@ -46,7 +46,6 @@ describe('entities', function() {
     });
   });
 
-
   it('load', function(done) {
 
     // need to debounce for 50ms to let the data get indexed.
