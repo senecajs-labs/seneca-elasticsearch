@@ -89,14 +89,19 @@ function search(options, register) {
   }
 
   function pickFields(args, cb) {
-    var fields = options.fields || false;
-
     var data = args.ent.data$();
 
-    if (fields) {
-      fields.push('_id');
-      data = _.pick.apply(_, [data, fields]);
-    }
+    // allow per-entity field configuration
+    var _type = args.command.type;
+    var _entities = options.entities || {};
+    var _fields = _entities[_type] || [];
+
+    // always pass through _id if it exists
+    // TODO: reconsider this?
+    _fields.push('_id');
+
+
+    data = _.pick.apply(_, [data, _fields]);
 
     args.entityData = data;
     cb(null, args);

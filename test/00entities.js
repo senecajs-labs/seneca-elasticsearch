@@ -15,13 +15,15 @@ seneca.use('mem-store');
 
 seneca.use('..', {
   refreshOnSave: true,
-  fields: ['jobTitle'],
+  entities: {
+    foo: ['jobTitle']
+  },
   connection: { index: indexName }
 });
 
 describe('entities', function() {
+  var fooId; // to hold the generated id
   var foo = seneca.make$('foo');
-  var fooId = 'john doe';
   var esClient = new elasticsearch.Client();
 
   after(function(done) {
@@ -31,14 +33,18 @@ describe('entities', function() {
   });
 
   before(function(done) {
-    foo.id$ = fooId;
     foo.jobTitle = 'important sounding title';
     foo.passHash = 'DO NOT INDEX!';
     seneca.ready(done);
   });
 
   it('should save entity', function(done) {
-    foo.save$(throwOnError(done));
+    foo.save$(function(err, result) {
+      if (err) { return seneca.fail(err); }
+
+      fooId = result.id;
+      done(null);
+    });
   });
 
 
