@@ -52,7 +52,7 @@ describe('records', function() {
       index: indexName,
       type: 'type1'
     };
-    command.data = { id: 'abcd', name: 'caramel' };
+    command.data = { _id: 'abcd', name: 'caramel' };
       
     seneca.act(command, throwOnError(done));
   });
@@ -72,9 +72,12 @@ describe('records', function() {
       if (err) { throw err; }
       assert.ok(resp.found);
       should.exist(resp._source);
+      should.exist(resp._id);
+
+      resp._id.should.eql('abcd');
 
       var src = resp._source;
-      src.id.should.eql('abcd');
+      src._id.should.eql('abcd');
       src.name.should.eql('caramel');
 
       done();
@@ -99,7 +102,8 @@ describe('records', function() {
 
       var result = resp.hits.hits[0]
       should.exist(result._source);
-      result._source.id.should.eql('abcd');
+      result._id.should.eql('abcd');
+      result._source._id.should.eql('abcd');
       result._source.name.should.eql('caramel');
 
       done();

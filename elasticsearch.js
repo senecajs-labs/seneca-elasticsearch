@@ -8,6 +8,7 @@ var assert        = require('assert');
 var async         = require('async');
 var elasticsearch = require('elasticsearch');
 var ejs           = require('elastic.js');
+var uuid          = require('node-uuid');
 
 function search(options, register) {
   var options = options || {};
@@ -62,7 +63,7 @@ function search(options, register) {
 
   // entity events
   seneca.add({role:'entity',cmd:'save'},
-    async.seq(populateCommand, entitySave, entityPrior, entityAct));
+    async.seq(populateCommand, pickFields, entitySave, entityPrior, entityAct));
 
   seneca.add({role:'entity',cmd:'remove'},
     async.seq(populateCommand, entityRemove, entityPrior, entityAct));
@@ -75,18 +76,32 @@ function search(options, register) {
   /*
   * Entity management
   */
-  function entitySave(args, cb) {
-    args.command.cmd = 'save';
-    args.command.data = args.ent.data$();
 
-    // TODO: _.pick only the specified keys
+  function populateCommand(args, cb) {
+    args.entityData = args.ent.data$();
+    args.command = {
+      role  : pluginName,
+      index : connectionOptions.index,
+      type  : args.entityData.entity$.name,
+    }
+
+    cb(null, args);
+  }
+
+  function entitySave(args, cb) {
+    args.ent.id$ = args.ent.id$ || args.ent._id || uuid.v4();
+
+    args.command.cmd = 'save';
+    args.command.data = args.entityData;
+    args.command.id = args.ent.id$;
+
     cb(null, args);
   }
 
   function entityRemove(args, cb) {
-
     args.command.cmd = 'remove';
-    args.command.data = { id: args.ent.id || args.ent.id$ };
+    args.command.id = args.q.id;
+    seneca.log.error(args);
     cb(null, args);
   }
 
@@ -99,13 +114,11 @@ function search(options, register) {
   function entityAct(entity, args, cb) {
     assert(args.command, "missing args.command");
 
-    args.command.data.id = args.ent.id;
-
     seneca.act(args.command, function( err, result ) {
       if(err) {
         return seneca.fail(err);
       } else {
-        cb(undefined, entity);
+        cb(null, entity);
       }
     });
   }
@@ -116,11 +129,11 @@ function search(options, register) {
     var data = args.ent.data$();
 
     if (fields) {
-      fields.push('id'); // always have an id field
+      fields.push('_id');
       data = _.pick.apply(_, [data, fields]);
     }
 
-    cb.entityData = data;
+    args.entityData = data;
     cb(null, args);
   }
 
@@ -160,7 +173,7 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
-    args.request.id = args.id || args.data.id;
+    args.request.id = args.id || args.data._id;
 
     esClient.index(args.request, cb);
   }
@@ -182,17 +195,6 @@ function search(options, register) {
   /**
   * Constructing requests.
   */
-
-  function populateCommand(args, cb) {
-    args.entityData = args.ent.data$();
-    args.command = {
-      role  : pluginName,
-      index : connectionOptions.index,
-      type  : args.entityData.entity$.name,
-    }
-
-    cb(null, args);
-  }
 
   function populateBody(args, cb) {
     args.request.body = args.data;
@@ -238,7 +240,7 @@ function search(options, register) {
   // ensures callback is called consistently
   function passArgs(args, cb) {
     return function (err, resp) {
-      if (err) { seneca.fail(err); }
+      if (err) { return seneca.fail(err); }
 
       cb(err, args);
     }
