@@ -74,7 +74,6 @@ describe('entities', function() {
       should.not.exist(src.passHash);
       should.not.exist(src.id);
       should.not.exist(src.entity$);
-
       done();
     }
   });
@@ -83,6 +82,11 @@ describe('entities', function() {
   it('should remove the entity', function(done) {
     foo.remove$(fooId, throwOnError(done));
   });
+
+  it('should not error when removing a non-existent entity', function(done) {
+    foo.remove$(fooId, throwOnError(done));
+  });
+
 });
 
 function throwOnError(done) {
