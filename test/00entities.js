@@ -46,6 +46,16 @@ describe('entities', function() {
     });
   });
 
+  it('update', function(done) {
+    foo.jobTitle += '_updated'
+    foo.save$(function(err, result) {
+      if (err) { return seneca.fail(err); }
+
+      assert.equal(fooId, result.id)
+      done(null);
+    });
+  });
+
   it('load', function(done) {
 
     // need to debounce for 50ms to let the data get indexed.
@@ -57,7 +67,7 @@ describe('entities', function() {
         cmd: 'load',
         index: indexName,
         type: 'foo',
-        id: fooId 
+        id: fooId
       };
       seneca.act(command, loadCb);
     }
@@ -70,7 +80,7 @@ describe('entities', function() {
       resp._id.should.eql(fooId);
 
       var src = resp._source;
-      src.jobTitle.should.eql('important sounding title');
+      src.jobTitle.should.eql('important sounding title_updated');
       should.not.exist(src.passHash);
       should.not.exist(src.id);
       should.not.exist(src.entity$);
