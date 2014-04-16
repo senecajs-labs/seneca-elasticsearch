@@ -48,10 +48,12 @@ describe('entities', function() {
 
   it('update', function(done) {
     foo.jobTitle += '_updated'
+    foo.id$ = fooId;
+
     foo.save$(function(err, result) {
       if (err) { return seneca.fail(err); }
 
-      assert.equal(fooId, result.id)
+      assert.equal(fooId, result.id);
       done(null);
     });
   });
