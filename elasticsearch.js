@@ -108,7 +108,7 @@ function search(options, register) {
   }
 
   function entitySave(args, cb) {
-    args.ent.id$ = args.ent.id$ || args.ent._id || uuid.v4();
+    args.ent.id$ = args.ent.id$ || args.ent._id || args.ent.id || uuid.v4();
 
     args.command.cmd = 'save';
     args.command.data = args.entityData;
