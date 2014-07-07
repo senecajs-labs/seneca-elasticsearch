@@ -63,7 +63,7 @@ function search(options, register) {
 
   // entity events
   seneca.add({role:'entity',cmd:'save'},
-    async.seq(populateCommand, pickFields, entitySave, entityPrior, entityAct));
+    async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
 
   seneca.add({role:'entity',cmd:'remove'},
     async.seq(populateCommand, entityRemove, entityPrior, entityAct));
