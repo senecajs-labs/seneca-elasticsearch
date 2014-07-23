@@ -239,12 +239,13 @@ function search(options, register) {
         if(databaseResults != undefined) {
           for(var i = 0; i < esResults.hits.hits.length; i++) {
             for(var j = 0; j < databaseResults.length; j++) {
-              if(esResults.hits.hits[i]._id != databaseResults[j].id) {
-                console.log("******* ID does not match = " + esResults.hits.hits[i]._id);
-                esResults.hits.hits.splice(i, 1);
-              } else {
+              if(esResults.hits.hits[i]._id === databaseResults[j].id) {
                 esResults.hits.hits[i]._source = databaseResults[j];
                 console.log("******* ID matches = " + esResults.hits.hits[i]._id); 
+              } else {
+                console.log("******* ID does not match = " + esResults.hits.hits[i]._id);
+                console.log("******* Deleting ID = " + esResults.hits.hits[i]._id);
+                esResults.hits.hits.splice(i, 1);
               }
             } 
           }
