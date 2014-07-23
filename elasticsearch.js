@@ -209,6 +209,7 @@ function search(options, register) {
     //console.log("******** ES RESULTS = " + JSON.stringify(esResults));
     var mapIdsByType = {};
     var ids  = [];
+    var matchingIds = [];
 
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
@@ -250,6 +251,7 @@ function search(options, register) {
               if(databaseResults[i].id == esResults.hits.hits[j]._id) {
                 esResults.hits.hits[j]._source = databaseResults[i];
                 console.log("******* ID matches = " + esResults.hits.hits[j]._id); 
+                matchingIds.push(esResults.hits.hits[j]._id);
               }
             } 
 
@@ -267,6 +269,13 @@ function search(options, register) {
 
       }
     }
+      for(var i = 0; i < matchingIds.length; i++) {
+        for(var j = 0; j < esResults.hits.hits.length; j++) {
+          if(matchingIds[i] != esResults.hits.hits[i]._id) {
+            esResults.hits.hits.splice(i, 1);
+          }
+        }
+      }
       //console.log("***********" + JSON.stringify(esResults));
       cb(undefined, esResults);
   }
