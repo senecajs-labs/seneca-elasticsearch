@@ -56,7 +56,7 @@ function search(options, register) {
     async.seq(populateRequest, loadRecord));
 
   seneca.add({role: pluginName, cmd: 'search'},
-    async.seq(populateRequest, populateSearch, populateSearchBody, doSearch));
+    async.seq(populateRequest, populateSearch, populateSearchBody, doSearch, fetchEntitiesFromDB));
 
   seneca.add({role: pluginName, cmd: 'remove'},
     async.seq(populateRequest, removeRecord));
@@ -199,6 +199,70 @@ function search(options, register) {
 
   function doSearch(args, cb) {
     esClient.search(args.request, cb);
+  }
+
+  function fetchEntitiesFromDB(esResults, statusCode, cb) {
+    // Return: 'typeName': ['1','2','3','4']
+    // modify postgresql store to accept list of id's 
+    // async.
+    //
+    //console.log("******** ES RESULTS = " + JSON.stringify(esResults));
+    var mapIdsByType = {};
+  
+    if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
+      var hits = esResults.hits.hits;
+      var ids  = [];
+      
+      for(var i = 0; i < hits.length; i++) {
+        if(!mapIdsByType[hits[i]._type]) {
+          mapIdsByType[hits[i]._type] = [];
+        }
+
+        mapIdsByType[hits[i]._type].push(hits[i]._id);
+        var typeHelper = seneca.make('sys', hits[i]._type);
+        ids.push(hits[i]._id);
+      }
+
+      for(var i =0; i < ids.length; i++) {
+        var query = { 
+          id: ids[i]
+        }
+
+        typeHelper.list$(query, function(err, objects) {
+        //Results returned from database
+        if(err) { 
+          return cb(err, undefined); 
+        }
+        
+        var databaseResults = objects;
+
+        if(databaseResults != undefined) {
+          for(var i = 0; i < esResults.hits.hits.length; i++) {
+            for(var j = 0; j < databaseResults.length; j++) {
+              if(esResults.hits.hits[i]._id != databaseResults[j].id) {
+                console.log("******* ID does not match = " + esResults.hits.hits[i]._id);
+                esResults.hits.hits.splice(i, 1);
+              } else {
+                esResults.hits.hits[i]._source = databaseResults[j];
+                console.log("******* ID matches = " + esResults.hits.hits[i]._id); 
+              }
+            } 
+          }
+          //console.log("***********" + JSON.stringify(databaseResults));
+
+        }
+        
+        //for(var i = 0; i < databaseResults.length; i++) {
+          //console.log
+          //merge json results
+          //console.log("******************* databaseResults = " + databaseResults); 
+        //}
+        }); 
+
+      }
+    }
+      //console.log("***********" + JSON.stringify(esResults));
+      cb(undefined, esResults);
   }
 
   /**
