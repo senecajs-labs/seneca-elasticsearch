@@ -208,10 +208,10 @@ function search(options, register) {
     //
     //console.log("******** ES RESULTS = " + JSON.stringify(esResults));
     var mapIdsByType = {};
-  
+    var ids  = [];
+
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
-      var ids  = [];
       
       for(var i = 0; i < hits.length; i++) {
         if(!mapIdsByType[hits[i]._type]) {
@@ -221,33 +221,38 @@ function search(options, register) {
         mapIdsByType[hits[i]._type].push(hits[i]._id);
         var typeHelper = seneca.make('sys', hits[i]._type);
         ids.push(hits[i]._id);
+        
       }
 
-      for(var i =0; i < ids.length; i++) {
+      //console.log("IDS = " + ids);
+
+      for(var i = 0; i < ids.length; i++) {
+
         var query = { 
           id: ids[i]
         }
-
+       
         typeHelper.list$(query, function(err, objects) {
         //Results returned from database
+        
         if(err) { 
           return cb(err, undefined); 
         }
         
         var databaseResults = objects;
+        
+        //console.log("******** Current ID = " + query.id);
+        //console.log("******** DB Result  = " + databaseResults);
+        if(databaseResults.length > 0) {
+          for(var i = 0; i < databaseResults.length; i++) {
 
-        if(databaseResults != undefined) {
-          for(var i = 0; i < esResults.hits.hits.length; i++) {
-            for(var j = 0; j < databaseResults.length; j++) {
-              if(esResults.hits.hits[i]._id === databaseResults[j].id) {
-                esResults.hits.hits[i]._source = databaseResults[j];
-                console.log("******* ID matches = " + esResults.hits.hits[i]._id); 
-              } else {
-                console.log("******* ID does not match = " + esResults.hits.hits[i]._id);
-                console.log("******* Deleting ID = " + esResults.hits.hits[i]._id);
-                esResults.hits.hits.splice(i, 1);
+            for(var j = 0; j < esResults.hits.hits.length; j++) {
+              if(databaseResults[i].id == esResults.hits.hits[j]._id) {
+                esResults.hits.hits[j]._source = databaseResults[i];
+                console.log("******* ID matches = " + esResults.hits.hits[j]._id); 
               }
             } 
+
           }
           //console.log("***********" + JSON.stringify(databaseResults));
 
