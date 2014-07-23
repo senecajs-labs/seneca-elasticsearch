@@ -210,6 +210,7 @@ function search(options, register) {
     var mapIdsByType = {};
     var ids  = [];
     var matchingIds = [];
+    var databaseResults;
 
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
@@ -235,47 +236,31 @@ function search(options, register) {
        
         typeHelper.list$(query, function(err, objects) {
         //Results returned from database
-        
-        if(err) { 
-          return cb(err, undefined); 
-        }
-        
-        var databaseResults = objects;
-        
-        //console.log("******** Current ID = " + query.id);
-        //console.log("******** DB Result  = " + databaseResults);
-        if(databaseResults.length > 0) {
-          for(var i = 0; i < databaseResults.length; i++) {
-
-            for(var j = 0; j < esResults.hits.hits.length; j++) {
-              if(databaseResults[i].id == esResults.hits.hits[j]._id) {
-                esResults.hits.hits[j]._source = databaseResults[i];
-                console.log("******* ID matches = " + esResults.hits.hits[j]._id); 
-                matchingIds.push(esResults.hits.hits[j]._id);
-              }
-            } 
-
+          if(err) { 
+            return cb(err, undefined); 
           }
-          //console.log("***********" + JSON.stringify(databaseResults));
+          
+          databaseResults = objects;
+          
+          if(databaseResults != undefined) {
+            for(var i = esResults.hits.hits.length - 1; i > 0; i--) {
+              var shouldRemove = true;
 
-        }
-        
-        //for(var i = 0; i < databaseResults.length; i++) {
-          //console.log
-          //merge json results
-          //console.log("******************* databaseResults = " + databaseResults); 
-        //}
+              for(var j = databaseResults.length - 1; j > 0; j--) {
+                if(esResults.hits.hits[i]._id === databaseResults[j].id) {
+                  shouldRemove = false;
+                  esResults.hits.hits[i]._source = databaseResults[j];
+                }
+              } 
+              if(shouldRemove) {
+                esResults.hits.hits.splice(i, 1);
+              }
+            }
+          }
         }); 
 
       }
     }
-      for(var i = 0; i < matchingIds.length; i++) {
-        for(var j = 0; j < esResults.hits.hits.length; j++) {
-          if(matchingIds[i] != esResults.hits.hits[i]._id) {
-            esResults.hits.hits.splice(i, 1);
-          }
-        }
-      }
       //console.log("***********" + JSON.stringify(esResults));
       cb(undefined, esResults);
   }
