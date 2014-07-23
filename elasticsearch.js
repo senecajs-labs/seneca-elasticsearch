@@ -210,7 +210,6 @@ function search(options, register) {
     var mapIdsByType = {};
     var ids  = [];
     var matchingIds = [];
-    var databaseResults;
 
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
@@ -240,19 +239,20 @@ function search(options, register) {
             return cb(err, undefined); 
           }
           
-          databaseResults = objects;
+          var databaseResults = objects;
           
-          if(databaseResults != undefined) {
-            for(var i = esResults.hits.hits.length - 1; i > 0; i--) {
+          if(databaseResults) {
+            for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
               var shouldRemove = true;
-
-              for(var j = databaseResults.length - 1; j > 0; j--) {
-                if(esResults.hits.hits[i]._id === databaseResults[j].id) {
+              for(var j = databaseResults.length-1; j >= 0; j--) {
+                if(esResults.hits.hits[i].id === databaseResults[j]._id) {
                   shouldRemove = false;
-                  esResults.hits.hits[i]._source = databaseResults[j];
+                  //esResults.hits.hits[i]._source = databaseResults[j];
+                  console.log("****** Keeping esResults " + esResults.hits.hits[i]._id);
                 }
-              } 
+              }
               if(shouldRemove) {
+                console.log("******* Deleting esResults " + esResults.hits.hits[i]._id);
                 esResults.hits.hits.splice(i, 1);
               }
             }
