@@ -203,10 +203,7 @@ function search(options, register) {
 
   function fetchEntitiesFromDB(esResults, statusCode, cb) {
     // Return: 'typeName': ['1','2','3','4']
-    // modify postgresql store to accept list of id's 
-    // async.
-    //
-    //console.log("******** ES RESULTS = " + JSON.stringify(esResults));
+    // modify postgresql store to accept list of id's
     var mapIdsByType = {};
     var ids  = [];
     var matchingIds = [];
@@ -229,7 +226,6 @@ function search(options, register) {
         query.ids.push(hits[i]._id);
       }
 
-       
         typeHelper.list$(query, function(err, objects) {
         //Results returned from database
           if(err) { 
@@ -237,28 +233,24 @@ function search(options, register) {
           }
           
           var databaseResults = objects;
-          //console.log("***************");
-          //console.log("Database Results = " + JSON.stringify(databaseResults));
+
           if(databaseResults) {
-            for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
+            for(var i = esResults.hits.hits.length-1; i > 0; i--) {
               var shouldRemove = true;
               for(var j = 0; j < databaseResults.length; j++) {
-                if(esResults.hits.hits[i].id === databaseResults[j]._id) {
+                if(esResults.hits.hits[i]._id === databaseResults[j].id) {
                   shouldRemove = false;
-                  //esResults.hits.hits[i]._source = databaseResults[j];
-                  //console.log("****** Keeping esResults " + esResults.hits.hits[i]._id);
+                  esResults.hits.hits[i]._source = databaseResults[j];
                 }
               }
               if(shouldRemove) {
-                //console.log("******* Deleting esResults " + esResults.hits.hits[i]._id);
                 esResults.hits.hits.splice(i, 1);
               }
             }
+            cb(undefined, esResults);
           }
         }); 
-    }
-      //console.log("***********" + JSON.stringify(esResults));
-      cb(undefined, esResults);
+    } 
   }
 
   /**
