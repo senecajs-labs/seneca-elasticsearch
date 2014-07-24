@@ -214,6 +214,10 @@ function search(options, register) {
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
       
+      var query = { 
+        ids: []
+      }
+
       for(var i = 0; i < hits.length; i++) {
         if(!mapIdsByType[hits[i]._type]) {
           mapIdsByType[hits[i]._type] = [];
@@ -221,17 +225,10 @@ function search(options, register) {
 
         mapIdsByType[hits[i]._type].push(hits[i]._id);
         var typeHelper = seneca.make('sys', hits[i]._type);
-        ids.push(hits[i]._id);
-        
+
+        query.ids.push(hits[i]._id);
       }
 
-      //console.log("IDS = " + ids);
-
-      for(var i = 0; i < ids.length; i++) {
-
-        var query = { 
-          id: ids[i]
-        }
        
         typeHelper.list$(query, function(err, objects) {
         //Results returned from database
@@ -240,26 +237,25 @@ function search(options, register) {
           }
           
           var databaseResults = objects;
-          
+          //console.log("***************");
+          //console.log("Database Results = " + JSON.stringify(databaseResults));
           if(databaseResults) {
             for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
               var shouldRemove = true;
-              for(var j = databaseResults.length-1; j >= 0; j--) {
+              for(var j = 0; j < databaseResults.length; j++) {
                 if(esResults.hits.hits[i].id === databaseResults[j]._id) {
                   shouldRemove = false;
                   //esResults.hits.hits[i]._source = databaseResults[j];
-                  console.log("****** Keeping esResults " + esResults.hits.hits[i]._id);
+                  //console.log("****** Keeping esResults " + esResults.hits.hits[i]._id);
                 }
               }
               if(shouldRemove) {
-                console.log("******* Deleting esResults " + esResults.hits.hits[i]._id);
+                //console.log("******* Deleting esResults " + esResults.hits.hits[i]._id);
                 esResults.hits.hits.splice(i, 1);
               }
             }
           }
         }); 
-
-      }
     }
       //console.log("***********" + JSON.stringify(esResults));
       cb(undefined, esResults);
