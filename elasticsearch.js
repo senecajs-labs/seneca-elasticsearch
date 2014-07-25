@@ -203,7 +203,7 @@ function search(options, register) {
 
   function fetchEntitiesFromDB(esResults, statusCode, cb) {
     var ids  = [];
-    
+
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
       
