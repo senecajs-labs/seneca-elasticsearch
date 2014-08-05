@@ -56,7 +56,7 @@ function search(options, register) {
     async.seq(populateRequest, loadRecord));
 
   seneca.add({role: pluginName, cmd: 'search'},
-    async.seq(populateRequest, populateSearch, populateSearchBody, doSearch));
+    async.seq(populateRequest, populateSearch, populateSearchBody, doSearch, fetchEntitiesFromDB));
 
   seneca.add({role: pluginName, cmd: 'remove'},
     async.seq(populateRequest, removeRecord));
@@ -199,6 +199,48 @@ function search(options, register) {
 
   function doSearch(args, cb) {
     esClient.search(args.request, cb);
+  }
+
+  function fetchEntitiesFromDB(esResults, statusCode, cb) {
+    var ids  = [];
+
+    if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
+      var hits = esResults.hits.hits;
+      
+      var query = { 
+        ids: []
+      }
+      for(var i = 0; i < hits.length; i++) {
+        var typeHelper = seneca.make('-/sys/' + hits[i]._type);
+        query.ids.push(hits[i]._id);
+      }
+
+      typeHelper.list$(query, function(err, objects) {
+
+        if(err) { 
+          return cb(err, undefined); 
+        }
+        var databaseResults = objects;
+        if(databaseResults) {
+          for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
+            var shouldRemove = true;
+            for(var j = 0; j < databaseResults.length; j++) {
+              if(esResults.hits.hits[i]._id === databaseResults[j].id) {
+                shouldRemove = false;
+                esResults.hits.hits[i]._source = databaseResults[j];
+              }
+            }
+            if(shouldRemove) {
+              esResults.hits.hits.splice(i, 1);
+            }
+          } 
+        }
+        esResults.hits.total = databaseResults.length;
+        cb(undefined, esResults);
+      });
+    } else {
+      cb(undefined, esResults);
+    }
   }
 
   /**
