@@ -222,18 +222,15 @@ function search(options, register) {
         }
         var databaseResults = objects;
         if(databaseResults) {
+          // Go from high to low because we're splicing out of the array while we're iterating through it
           for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
-            var shouldRemove = true;
-            for(var j = 0; j < databaseResults.length; j++) {
-              if(esResults.hits.hits[i]._id === databaseResults[j].id) {
-                shouldRemove = false;
-                esResults.hits.hits[i]._source = databaseResults[j];
-              }
-            }
-            if(shouldRemove) {
+            esResults.hits.hits[i]._source = _.find(databaseResults, function(item){
+              return esResults.hits.hits[i]._id === item.id;
+            });
+            if(!esResults.hits.hits[i]._source) {
               esResults.hits.hits.splice(i, 1);
             }
-          } 
+          }
         }
         esResults.hits.total = databaseResults.length;
         cb(undefined, esResults);
