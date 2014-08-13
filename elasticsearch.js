@@ -203,7 +203,7 @@ function search(options, register) {
 
   function fetchEntitiesFromDB(esResults, statusCode, cb) {
     var ids  = [];
-
+    var seneca = this;
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
       
@@ -211,7 +211,7 @@ function search(options, register) {
         ids: []
       }
       for(var i = 0; i < hits.length; i++) {
-        var typeHelper = seneca.make('-/sys/' + hits[i]._type);
+        var typeHelper = seneca.make('sys/' + hits[i]._type);
         query.ids.push(hits[i]._id);
       }
 
