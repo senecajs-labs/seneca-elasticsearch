@@ -201,44 +201,75 @@ function search(options, register) {
     esClient.search(args.request, cb);
   }
 
-  function fetchEntitiesFromDB(esResults, statusCode, cb) {
-    var ids  = [];
-    var seneca = this;
-    if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
-      var hits = esResults.hits.hits;
-      
-      var query = { 
-        ids: []
-      }
-      for(var i = 0; i < hits.length; i++) {
-        var typeHelper = seneca.make('sys/' + hits[i]._type);
-        query.ids.push(hits[i]._id);
-      }
+	function fetchEntitiesFromDB(esResults, statusCode, cb) {
+		var seneca = this;
+		if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
+			var hits = esResults.hits.hits;
 
-      typeHelper.list$(query, function(err, objects) {
+			var query = {
+				ids: []
+			}
 
-        if(err) { 
-          return cb(err, undefined); 
-        }
-        var databaseResults = objects;
-        if(databaseResults) {
-          // Go from high to low because we're splicing out of the array while we're iterating through it
-          for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
-            esResults.hits.hits[i]._source = _.find(databaseResults, function(item){
-              return esResults.hits.hits[i]._id === item.id;
-            });
-            if(!esResults.hits.hits[i]._source) {
-              esResults.hits.hits.splice(i, 1);
-            }
-          }
-        }
-        esResults.hits.total = databaseResults.length;
-        cb(undefined, esResults);
-      });
-    } else {
-      cb(undefined, esResults);
-    }
-  }
+			//must search in database through all types if search return multiple types results
+			var resultTypes = {};
+
+			_.each(hits, function(hit){
+				if(!resultTypes[hit._type]){
+					resultTypes[hit._type] = {
+						ids: [],
+						hits: []
+					};
+					resultTypes[hit._type].ids.push(hit._id);
+					resultTypes[hit._type].hits.push(hit);
+				} else {
+					resultTypes[hit._type].ids.push(hit._id);
+					resultTypes[hit._type].hits.push(hit);
+				}
+			});
+
+			var totalHits = 0;
+			async.each(_.keys(resultTypes), function(type, next) {
+				var typeHelper = seneca.make('sys/' + type);
+				query.ids = query.ids.concat(resultTypes[type].ids);
+				var hits = resultTypes[type].hits;
+
+				typeHelper.list$(query, function(err, objects) {
+					if (err) {
+						return cb(err, undefined);
+					}
+					var databaseResults = objects;
+					if (databaseResults) {
+						// Go from high to low because we're splicing out of the array while we're iterating through it
+						for (var i = hits.length - 1; i >= 0; i--) {
+							hits[i]._source = _.find(databaseResults, function (item) {
+								return hits[i]._id === item.id;
+							});
+							if (!hits[i]._source) {
+								hits.splice(i, 1);
+							}
+						}
+
+						resultTypes[type].hits = hits;
+					}
+					totalHits += databaseResults.length;
+					next();
+				});
+			}, function(err){
+				if(err) {
+					if (err) { return seneca.fail(err); }
+				} else {
+					esResults.hits.hits = [];
+					_.each(_.keys(resultTypes), function(type){
+						esResults.hits.hits = esResults.hits.hits.concat(resultTypes[type].hits);
+					});
+					esResults.hits.total = totalHits;
+					cb(undefined, esResults);
+				}
+			});
+		} else {
+			cb(undefined, esResults);
+		}
+	}
 
   /**
   * Constructing requests.
