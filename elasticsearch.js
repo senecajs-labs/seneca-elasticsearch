@@ -16,7 +16,7 @@ function search(options, register) {
 
   // Apply defaults individually,
   // instead of all-or-nothing.
-  var connectionOptions = options.connection || {};
+  var connectionOptions = _.extend({}, options.connection, {});
 
 
   _.defaults(connectionOptions, {
@@ -63,7 +63,8 @@ function search(options, register) {
 
   // entity events
 	// check if "base" is defined  in options and use it to call entity events if it is
-	if(_.isNull(options.base) || _.isEmpty(options.base) || _.isNaN(options.base)) {
+	if (_.isNull(options.base) || _.isEmpty(options.base) ||
+		_.isNaN(options.base) || _.isUndefined(options.base)) {
 		seneca.add({role: 'entity', cmd: 'save'},
 			async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
 
