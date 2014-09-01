@@ -239,7 +239,14 @@ function search(options, register) {
         ids: []
       }
       for(var i = 0; i < hits.length; i++) {
-        var typeHelper = seneca.make('sys/' + hits[i]._type);
+	      var base;
+	      if (_.isNull(options.base) || _.isEmpty(options.base) ||
+		      _.isNaN(options.base) || _.isUndefined(options.base)) {
+		      base = 'sys/';
+	      } else {
+		      base = options.base + '/';
+	      }
+	      var typeHelper = seneca.make(base + hits[i]._type);
         query.ids.push(hits[i]._id);
       }
 
