@@ -265,7 +265,7 @@ function search(options, register) {
 				} else {
 					base = options.base + '/';
 				}
-				var typeHelper = seneca.make(base + hits[i]._type);
+				var typeHelper = seneca.make(base + type);
 
 				query.ids = query.ids.concat(resultTypes[type].ids);
 				var hits = resultTypes[type].hits;
@@ -283,12 +283,13 @@ function search(options, register) {
 							});
 							if (!hits[i]._source) {
 								hits.splice(i, 1);
+								esResults.hits.total -= 1;
 							}
 						}
 
 						resultTypes[type].hits = hits;
 					}
-					totalHits += databaseResults.length;
+					totalHits += esResults.hits.total;
 					next();
 				});
 			}, function(err){
