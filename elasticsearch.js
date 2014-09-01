@@ -62,11 +62,20 @@ function search(options, register) {
     async.seq(populateRequest, removeRecord));
 
   // entity events
-  seneca.add({role:'entity',cmd:'save'},
-    async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+	// check if "base" is defined  in options and use it to call entity events if it is
+	if(_.isNull(options.base) || _.isEmpty(options.base) || _.isNaN(options.base)) {
+		seneca.add({role: 'entity', cmd: 'save'},
+			async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
 
-  seneca.add({role:'entity',cmd:'remove'},
-    async.seq(populateCommand, entityRemove, entityPrior, entityAct));
+		seneca.add({role: 'entity', cmd: 'remove'},
+			async.seq(populateCommand, entityRemove, entityPrior, entityAct));
+	} else {
+		seneca.add({role: 'entity', cmd: 'save', base: options.base},
+			async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+
+		seneca.add({role: 'entity', cmd: 'remove', base: options.base},
+			async.seq(populateCommand, entityRemove, entityPrior, entityAct));
+	}
 
   register(null, {
     name: pluginName,
@@ -82,8 +91,8 @@ function search(options, register) {
     args.command = {
       role  : pluginName,
       index : connectionOptions.index,
-      type  : args.entityData.entity$.name,
-    }
+      type  : args.entityData.entity$.name
+    };
 
     cb(null, args);
   }
@@ -178,9 +187,27 @@ function search(options, register) {
   * Record management.
   */
   function saveRecord(args, cb) {
-    // We explicitly don't care about the seneca entity id$
-    args.request.id = args.id || args.data._id;
-    esClient.index(args.request, cb);
+	  var skip = false;
+
+	  //if filters are set in options, saveRecord will skip over records which accomplish the filter condition
+	  if (options.filters && options.filters[args.type]) {
+		  var filter = options.filters[args.type];
+		  _.each(filter, function (ex, key) {
+			  if (!((ex === args.data[key]) || ('' + args.data[key]).match(ex))) {
+				  skip = true;
+			  }
+		  })
+	  }
+
+	  // We explicitly don't care about the seneca entity id$
+	  args.request.id = args.id || args.data._id;
+
+	  if (skip) {
+		  setImmediate(cb)
+	  }
+	  else {
+		  esClient.index(args.request, cb);
+	  }
   }
 
   function loadRecord(args, cb) {
@@ -201,75 +228,44 @@ function search(options, register) {
     esClient.search(args.request, cb);
   }
 
-	function fetchEntitiesFromDB(esResults, statusCode, cb) {
-		var seneca = this;
-		if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
-			var hits = esResults.hits.hits;
+  function fetchEntitiesFromDB(esResults, statusCode, cb) {
+    var ids  = [];
+    var seneca = this;
+    if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
+      var hits = esResults.hits.hits;
 
-			var query = {
-				ids: []
-			}
+      var query = {
+        ids: []
+      }
+      for(var i = 0; i < hits.length; i++) {
+        var typeHelper = seneca.make('sys/' + hits[i]._type);
+        query.ids.push(hits[i]._id);
+      }
 
-			//must search in database through all types if search return multiple types results
-			var resultTypes = {};
+      typeHelper.list$(query, function(err, objects) {
 
-			_.each(hits, function(hit){
-				if(!resultTypes[hit._type]){
-					resultTypes[hit._type] = {
-						ids: [],
-						hits: []
-					};
-					resultTypes[hit._type].ids.push(hit._id);
-					resultTypes[hit._type].hits.push(hit);
-				} else {
-					resultTypes[hit._type].ids.push(hit._id);
-					resultTypes[hit._type].hits.push(hit);
-				}
-			});
-
-			var totalHits = 0;
-			async.each(_.keys(resultTypes), function(type, next) {
-				var typeHelper = seneca.make('sys/' + type);
-				query.ids = query.ids.concat(resultTypes[type].ids);
-				var hits = resultTypes[type].hits;
-
-				typeHelper.list$(query, function(err, objects) {
-					if (err) {
-						return cb(err, undefined);
-					}
-					var databaseResults = objects;
-					if (databaseResults) {
-						// Go from high to low because we're splicing out of the array while we're iterating through it
-						for (var i = hits.length - 1; i >= 0; i--) {
-							hits[i]._source = _.find(databaseResults, function (item) {
-								return hits[i]._id === item.id;
-							});
-							if (!hits[i]._source) {
-								hits.splice(i, 1);
-							}
-						}
-
-						resultTypes[type].hits = hits;
-					}
-					totalHits += databaseResults.length;
-					next();
-				});
-			}, function(err){
-				if(err) {
-					if (err) { return seneca.fail(err); }
-				} else {
-					esResults.hits.hits = [];
-					_.each(_.keys(resultTypes), function(type){
-						esResults.hits.hits = esResults.hits.hits.concat(resultTypes[type].hits);
-					});
-					esResults.hits.total = totalHits;
-					cb(undefined, esResults);
-				}
-			});
-		} else {
-			cb(undefined, esResults);
-		}
-	}
+        if(err) {
+          return cb(err, undefined);
+        }
+        var databaseResults = objects;
+        if(databaseResults) {
+          // Go from high to low because we're splicing out of the array while we're iterating through it
+          for(var i = esResults.hits.hits.length-1; i >= 0; i--) {
+            esResults.hits.hits[i]._source = _.find(databaseResults, function(item){
+              return esResults.hits.hits[i]._id === item.id;
+            });
+            if(!esResults.hits.hits[i]._source) {
+              esResults.hits.hits.splice(i, 1);
+            }
+          }
+        }
+        esResults.hits.total = databaseResults.length;
+        cb(undefined, esResults);
+      });
+    } else {
+      cb(undefined, esResults);
+    }
+  }
 
   /**
   * Constructing requests.
@@ -310,7 +306,7 @@ function search(options, register) {
     args.request = {
       index: args.index,
       type: dataType,
-      refresh: options.refreshOnSave,
+      refresh: options.refreshOnSave
     };
 
     cb(null, args);
