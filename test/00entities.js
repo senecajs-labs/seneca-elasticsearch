@@ -36,11 +36,11 @@ describe('entities', function() {
   var foo = seneca.make$('foo');
   var esClient = new elasticsearch.Client();
 
-  // after(function(done) {
-  //   esClient.indices.delete({index: indexName})
-  //     .then(done.bind(null, null))
-  //     .catch(done);
-  // });
+  after(function(done) {
+    esClient.indices.delete({index: indexName})
+      .then(done.bind(null, null))
+      .catch(done);
+  });
 
   before(function(done) {
     foo.jobTitle = 'important sounding title';
