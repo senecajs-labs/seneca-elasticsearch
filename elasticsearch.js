@@ -1,14 +1,15 @@
 /* jshint indent: 2, asi: true */
 // vim: noai:ts=2:sw=2
 
-var pluginName    = 'search'
+var pluginName      = 'search'
 
-var _             = require('underscore');
-var assert        = require('assert');
-var async         = require('async');
-var elasticsearch = require('elasticsearch');
-var ejs           = require('elastic.js');
-var uuid          = require('node-uuid');
+var _               = require('underscore');
+var assert          = require('assert');
+var async           = require('async');
+var ParallelRunner  = require('serial').ParallelRunner;
+var elasticsearch   = require('elasticsearch');
+var ejs             = require('elastic.js');
+var uuid            = require('node-uuid');
 
 function search(options, register) {
   var options = options || {};
@@ -29,6 +30,19 @@ function search(options, register) {
 
   var esClient = new elasticsearch.Client(_.clone(connectionOptions));
 
+  var entitiesConfig = {};
+  if(options.entities) {
+    for(var i = 0 ; i < options.entities.length ; i++) {
+      var entitySettings = options.entities[i];
+      var esEntityName = entityNameFromObj(entitySettings);
+      var config = entitiesConfig[esEntityName] = {};
+      if(entitySettings.indexedAttributes) {
+        config.indexedAttributes = Object.keys(entitySettings.indexedAttributes);
+        config.mapping = entitySettings.indexedAttributes;
+      }
+    }
+  }
+
   /**
   * Seneca bindings.
   *
@@ -38,7 +52,8 @@ function search(options, register) {
   */
 
   // startup
-  seneca.add({init: pluginName}, ensureIndex);
+  seneca.add({init: pluginName},
+    async.seq(ensureIndex, putMappings));
 
   // index events
   seneca.add({role: pluginName, cmd: 'create-index'}, ensureIndex);
@@ -82,8 +97,8 @@ function search(options, register) {
     args.command = {
       role  : pluginName,
       index : connectionOptions.index,
-      type  : args.entityData.entity$.name,
-    }
+      type  : entityNameFromObj(args.entityData.entity$),
+    };
 
     cb(null, args);
   }
@@ -92,16 +107,19 @@ function search(options, register) {
     var data = args.ent.data$();
 
     // allow per-entity field configuration
-    var _type = args.command.type;
-    var _entities = options.entities || {};
-    var _fields = _entities[_type] || [];
+    var type = args.command.type;
+    var typeConfig = entitiesConfig[type];
+    var indexedAttributes = [];
+    if(typeConfig && typeConfig.indexedAttributes) {
+      indexedAttributes = typeConfig.indexedAttributes;
+    }
 
     // always pass through _id if it exists
     // TODO: reconsider this?
-    _fields.push('_id');
+    indexedAttributes.push('_id');
 
 
-    data = _.pick.apply(_, [data, _fields]);
+    data = _.pick(data, indexedAttributes);
 
     args.entityData = data;
     cb(null, args);
@@ -175,6 +193,44 @@ function search(options, register) {
         cb(err, args);
       }
     }
+  }
+
+  function entityNameFromObj(obj) {
+    var esName = '';
+    if(obj.zone) {
+      esName += obj.zone + '_';
+    }
+    if(obj.base) {
+      esName += obj.base + '_';
+    }
+    esName += obj.name || 'undefined';
+    return esName;
+  }
+
+  function entityNameFromStr(canonizedName) {
+    return canonizedName.replace('-/', '').replace('/', '_');
+  }
+
+  function putMappings(args, cb) {
+    var r = new ParallelRunner();
+    for(var entityType in entitiesConfig) {
+      var mapping = {};
+      mapping[entityType] = {
+        properties: entitiesConfig[entityType].mapping
+      };
+      r.add(putMapping, entityType, mapping);
+    }
+    r.run(function() {
+      cb();
+    });
+  }
+
+  function putMapping(type, mapping, cb) {
+    esClient.indices.putMapping({
+      index: connectionOptions.index,
+      type: type,
+      body: mapping
+    }, cb);
   }
 
   /**
@@ -276,7 +332,7 @@ function search(options, register) {
   function populateRequest(args, cb) {
     assert.ok(args.data || args.type, 'missing args.data and args.type');
 
-    var dataType = args.type || args.data.entity$;
+    var dataType = args.type || entityNameFromStr(args.data.entity$);
     assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type');
 
     args.request = {
@@ -292,7 +348,6 @@ function search(options, register) {
   function passArgs(args, cb) {
     return function (err, resp) {
       if (err) { return seneca.fail(err); }
-
       cb(err, args);
     }
   }
