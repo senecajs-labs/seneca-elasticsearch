@@ -27,7 +27,7 @@ function search(options, register) {
     log           : 'error'
   });
 
-  var esClient = new elasticsearch.Client(connectionOptions);
+  var esClient = new elasticsearch.Client(_.clone(connectionOptions));
 
   /**
   * Seneca bindings.
