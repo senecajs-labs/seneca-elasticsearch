@@ -39,7 +39,7 @@ describe('entities', function() {
 
   it('should save entity', function(done) {
     foo.save$(function(err, result) {
-      if (err) { return seneca.fail(err); }
+      assert.ok(!err, err);
 
       fooId = result.id;
       done(null);
@@ -51,7 +51,7 @@ describe('entities', function() {
     foo.id$ = fooId;
 
     foo.save$(function(err, result) {
-      if (err) { return seneca.fail(err); }
+      assert.ok(!err, err);
 
       assert.equal(fooId, result.id);
       done(null);
@@ -71,6 +71,7 @@ describe('entities', function() {
         type: 'foo',
         id: fooId
       };
+
       seneca.act(command, loadCb);
     }
 

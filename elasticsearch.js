@@ -108,11 +108,10 @@ function search(options, register) {
   }
 
   function entitySave(args, cb) {
-    args.ent.id$ = args.ent.id$ || args.ent._id || args.ent.id || uuid.v4();
 
     args.command.cmd = 'save';
     args.command.data = args.entityData;
-    args.command.id = args.ent.id$;
+    args.command.id = args.entityResult.id;
 
     cb(null, args);
   }
@@ -125,8 +124,12 @@ function search(options, register) {
 
   function entityPrior(args, cb) {
     this.prior(args, function(err, result) {
-      args.entityResult = result;
-      cb(null, args);
+      if(err) {
+        return cb(err, undefined);
+      } else {
+        args.entityResult = result;
+        cb(null, args);
+      }
     });
   }
 
