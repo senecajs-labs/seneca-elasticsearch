@@ -53,7 +53,7 @@ describe('records', function() {
       type: 'type1'
     };
     command.data = { _id: 'abcd', name: 'caramel' };
-      
+
     seneca.act(command, throwOnError(done));
   });
 

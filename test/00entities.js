@@ -12,7 +12,7 @@ var indexName = 'seneca-test-entity';
 
 seneca.use('mem-store');
 
-seneca.use('..', {
+seneca.use('../elasticsearch.js', {
   refreshOnSave: true,
   entities: [{
     zone: undefined,

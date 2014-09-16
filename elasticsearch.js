@@ -53,7 +53,21 @@ function search(options, register) {
 
   // startup
   seneca.add({init: pluginName},
-    async.seq(ensureIndex, putMappings));
+    async.seq(pingCluster, ensureIndex, putMappings));
+
+  function pingCluster(args, cb) {
+    esClient.ping({
+      requestTimeout: 1000,
+      // undocumented params are appended to the query string
+      hello: "elasticsearch!"
+    }, function (error) {
+      if (error) {
+        cb(error, undefined);
+      } else {
+        cb(undefined, args);
+      }
+    });
+  }
 
   // index events
   seneca.add({role: pluginName, cmd: 'create-index'}, ensureIndex);
@@ -77,11 +91,31 @@ function search(options, register) {
     async.seq(populateRequest, removeRecord));
 
   // entity events
-  seneca.add({role:'entity',cmd:'save'},
-    async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+  if(options.entities && options.entities.length > 0) {
+    for(var i = 0 ; i < options.entities.length ; i++) {
+      var entityDef = options.entities[i];
 
-  seneca.add({role:'entity',cmd:'remove'},
-    async.seq(populateCommand, entityRemove, entityPrior, entityAct));
+      seneca.add(
+        augmentArgs({
+          role:'entity',
+          cmd:'save'
+        }, entityDef),
+        async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+
+      seneca.add(
+        augmentArgs({
+          role:'entity',
+          cmd:'remove'
+        }, entityDef),
+        async.seq(populateCommand, entityRemove, entityPrior, entityAct));
+    }
+  } else {
+    seneca.add({role:'entity',cmd:'save'},
+      async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+
+    seneca.add({role:'entity',cmd:'remove'},
+      async.seq(populateCommand, entityRemove, entityPrior, entityAct));
+  }
 
   register(null, {
     name: pluginName,
@@ -185,9 +219,8 @@ function search(options, register) {
     assert.ok(args.index, 'missing args.index');
 
     hasIndex(args, onExists);
-
     function onExists(err, exists) {
-      if (err || !exists) {
+      if (!err && !exists) {
         createIndex(args, passArgs(args, cb));
       } else {
         cb(err, args);
@@ -215,8 +248,19 @@ function search(options, register) {
     var r = new ParallelRunner();
     for(var entityType in entitiesConfig) {
       var mapping = {};
+      var properties = {};
+      var hasProperties = false;
+      for(var prop in entitiesConfig[entityType].mapping) {
+        if(entitiesConfig[entityType].mapping[prop] !== true) {
+          properties[prop] = entitiesConfig[entityType].mapping[prop];
+          hasProperties = true;
+        }
+      }
+      if(!hasProperties) {
+        continue;
+      }
       mapping[entityType] = {
-        properties: entitiesConfig[entityType].mapping
+        properties: properties
       };
       r.add(putMapping, entityType, mapping);
     }
@@ -226,11 +270,15 @@ function search(options, register) {
   }
 
   function putMapping(type, mapping, cb) {
+    // console.log(JSON.stringify(mapping, null, 2))
     esClient.indices.putMapping({
       index: connectionOptions.index,
       type: type,
       body: mapping
-    }, cb);
+    }, function(err, response) {
+      if(err) throw err
+      cb(undefined, response)
+    });
   }
 
   /**
@@ -239,6 +287,7 @@ function search(options, register) {
   function saveRecord(args, cb) {
     // We explicitly don't care about the seneca entity id$
     args.request.id = args.id || args.data._id;
+
     esClient.index(args.request, cb);
   }
 
@@ -350,6 +399,19 @@ function search(options, register) {
       if (err) { return seneca.fail(err); }
       cb(err, args);
     }
+  }
+
+  function augmentArgs(args, entityDef) {
+    if(entityDef.zone) {
+      args.zone = entityDef.zone;
+    }
+    if(entityDef.base) {
+      args.base = entityDef.base;
+    }
+    if(entityDef.name) {
+      args.name = entityDef.name;
+    }
+    return args;
   }
 
 }
