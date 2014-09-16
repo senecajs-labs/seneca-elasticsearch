@@ -154,6 +154,8 @@ function search(options, register) {
 
 
     data = _.pick(data, indexedAttributes);
+    data.entity$ = args.ent.entity$;
+    data.id = args.ent.id;
 
     args.entityData = data;
     cb(null, args);
@@ -256,9 +258,14 @@ function search(options, register) {
           hasProperties = true;
         }
       }
-      if(!hasProperties) {
-        continue;
-      }
+      properties.entity$ = {
+        type: 'string',
+        index: 'not_analyzed'
+      };
+      properties.id = {
+        type: 'string',
+        index: 'not_analyzed'
+      };
       mapping[entityType] = {
         properties: properties
       };
@@ -314,19 +321,19 @@ function search(options, register) {
     var seneca = this;
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
-      
-      var query = { 
+
+      var query = {
         ids: []
       }
       for(var i = 0; i < hits.length; i++) {
-        var typeHelper = seneca.make('sys/' + hits[i]._type);
+        var typeHelper = seneca.make(hits[i]._source.entity$);
         query.ids.push(hits[i]._id);
       }
 
       typeHelper.list$(query, function(err, objects) {
 
-        if(err) { 
-          return cb(err, undefined); 
+        if(err) {
+          return cb(err, undefined);
         }
         var databaseResults = objects;
         if(databaseResults) {
