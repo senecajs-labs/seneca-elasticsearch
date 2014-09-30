@@ -28,7 +28,8 @@ function search(options, register) {
     log           : 'error'
   });
 
-  var esClient = new elasticsearch.Client(_.clone(connectionOptions));
+  connectionOptions = _.clone(connectionOptions);
+  var esClient = new elasticsearch.Client(connectionOptions);
 
   var entitiesConfig = {};
   if(options.entities) {
@@ -445,7 +446,7 @@ function search(options, register) {
     assert.ok(dataType, 'expected either "type" or "data.entity$" to deduce the entity type');
 
     args.request = {
-      index: args.index,
+      index: args.index || connectionOptions.index,
       type: dataType,
       refresh: options.refreshOnSave
     };
