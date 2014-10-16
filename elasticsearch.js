@@ -101,7 +101,7 @@ function search(options, register) {
           role:'entity',
           cmd:'save'
         }, entityDef),
-        async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+        async.seq(populateCommand, entityPrior, pickFields, entitySave, entityAct));
 
       seneca.add(
         augmentArgs({
@@ -112,7 +112,7 @@ function search(options, register) {
     }
   } else {
     seneca.add({role:'entity',cmd:'save'},
-      async.seq(populateCommand, pickFields, entityPrior, entitySave, entityAct));
+      async.seq(populateCommand, entityPrior, pickFields, entitySave, entityAct));
 
     seneca.add({role:'entity',cmd:'remove'},
       async.seq(populateCommand, entityRemove, entityPrior, entityAct));
@@ -139,7 +139,7 @@ function search(options, register) {
   }
 
   function pickFields(args, cb) {
-    var data = args.ent.data$();
+    var data = args.entityResult.data$();
 
     // allow per-entity field configuration
     var type = args.command.type;
@@ -149,14 +149,8 @@ function search(options, register) {
       indexedAttributes = typeConfig.indexedAttributes;
     }
 
-    // always pass through _id if it exists
-    // TODO: reconsider this?
-    indexedAttributes.push('_id');
-
-
     data = _.pick(data, indexedAttributes);
-    data.entity$ = args.ent.entity$;
-    data.id = args.ent.id;
+    data.entity$ = args.entityResult.entity$;
 
     args.entityData = data;
     cb(null, args);
@@ -166,7 +160,7 @@ function search(options, register) {
 
     args.command.cmd = 'save';
     args.command.data = args.entityData;
-    args.command.id = args.entityResult.id;
+    args.command.id = args.entityData.id;
 
     cb(null, args);
   }
@@ -278,7 +272,6 @@ function search(options, register) {
   }
 
   function putMapping(type, mapping, cb) {
-    // console.log(JSON.stringify(mapping, null, 2))
     esClient.indices.putMapping({
       index: connectionOptions.index,
       type: type,
@@ -305,13 +298,14 @@ function search(options, register) {
 		  })
 	  }
 
-	  // We explicitly don't care about the seneca entity id$
-	  args.request.id = args.id || args.data._id;
-
 	  if (skip) {
 		  setImmediate(cb)
 	  }
 	  else {
+      // set the ES id as the entity id. We use it for 1-1 mapping between
+      // ES and the DB.
+      args.request.id = args.data.id;
+
 		  esClient.index(args.request, cb);
 	  }
   }
