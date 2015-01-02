@@ -137,6 +137,7 @@ function search(options, register) {
       role  : pluginName,
       index : connectionOptions.index,
       type  : entityNameFromObj(args.entityData.entity$),
+      update: !!args.ent.id
     };
 
     cb(null, args);
@@ -147,12 +148,12 @@ function search(options, register) {
 
     // allow per-entity field configuration
     var type = args.command.type;
+
     var typeConfig = entitiesConfig[type];
     var indexedAttributes = [];
     if(typeConfig && typeConfig.indexedAttributes) {
       indexedAttributes = typeConfig.indexedAttributes;
     }
-
     data = _.pick(data, indexedAttributes);
     data.entity$ = args.entityResult.entity$;
 
@@ -310,7 +311,14 @@ function search(options, register) {
       // ES and the DB.
       args.request.id = args.data.id;
 
-      esClient.index(args.request, cb);
+      if(args.update) {
+        args.request.body = {
+          doc: args.request.body
+        }
+        esClient.update(args.request, cb);
+      } else {
+        esClient.index(args.request, cb);
+      }
     }
   }
 
