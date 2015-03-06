@@ -11,7 +11,7 @@ var elasticsearch   = require('elasticsearch');
 var ejs             = require('elastic.js');
 var uuid            = require('node-uuid');
 
-function search(options, register) {
+function search(options) {
   var options = options || {};
   var seneca = this;
 
@@ -121,11 +121,6 @@ function search(options, register) {
     seneca.add({role:'entity',cmd:'remove'},
       async.seq(populateCommand, entityRemove, entityPrior, entityAct));
   }
-
-  register(null, {
-    name: pluginName,
-    native: esClient
-  });
 
   /*
    * Entity management
