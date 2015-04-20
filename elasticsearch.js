@@ -202,7 +202,13 @@ function search(options) {
   }
 
   function createIndex(args, cb) {
-    esClient.indices.create({index: args.index}, cb);
+    esClient.indices.create({index: args.index}, function(err) {
+      if(err && /^IndexAlreadyExistsException/m.test(err.message)) {
+        cb()
+      } else {
+        cb(err)
+      }
+    });
   }
 
   function deleteIndex(args, cb) {
@@ -215,14 +221,7 @@ function search(options) {
 
     assert.ok(args.index, 'missing args.index');
 
-    hasIndex(args, onExists);
-    function onExists(err, exists) {
-      if (!err && !exists) {
-        createIndex(args, passArgs(args, cb));
-      } else {
-        cb(err, args);
-      }
-    }
+    createIndex(args, passArgs(args, cb));
   }
 
   function entityNameFromObj(obj) {
