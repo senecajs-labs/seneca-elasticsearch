@@ -19,7 +19,8 @@ seneca.use('seneca-elasticsearch', {
     foo         : ['jobTitle']          // if not defined, no fields are indexed
   },
 
-  connection    : { index : indexName } // customize index name
+  connection    : { index : indexName }, // customize index name
+  pingTimeout   : 1000
 });
 
 seneca.ready(function(err) {

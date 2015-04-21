@@ -19,7 +19,8 @@ function search(options) {
   // instead of all-or-nothing.
   var connectionOptions = options.connection || {};
 
-
+  var pingTimeout = options.pingTimeout || 1000;
+  
   _.defaults(connectionOptions, {
     host          : '127.0.0.1:9200',
     sniffInterval : 300000,
@@ -58,7 +59,7 @@ function search(options) {
 
   function pingCluster(args, cb) {
     esClient.ping({
-      requestTimeout: 1000,
+      requestTimeout: pingTimeout,
       // undocumented params are appended to the query string
       hello: "elasticsearch!"
     }, function (error) {
