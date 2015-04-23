@@ -308,7 +308,8 @@ function search(options) {
 
       if(args.update) {
         args.request.body = {
-          doc: args.request.body
+          doc: args.request.body,
+          upsert: args.request.body
         }
         esClient.update(args.request, cb);
       } else {
