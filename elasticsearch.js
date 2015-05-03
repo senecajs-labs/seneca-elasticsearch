@@ -32,6 +32,8 @@ function search(options) {
   connectionOptions = _.clone(connectionOptions);
   var esClient = new elasticsearch.Client(connectionOptions);
 
+  var indexConfig = options.indexConfig ? options.indexConfig : {};
+
   var entitiesConfig = {};
   if(options.entities) {
     for(var i = 0 ; i < options.entities.length ; i++) {
@@ -203,7 +205,15 @@ function search(options) {
   }
 
   function createIndex(args, cb) {
-    esClient.indices.create({index: args.index}, function(err) {
+    var param = {};
+
+    param.index = args.index;
+    
+    if(!_.isEmpty(indexConfig)){
+      param.body = {settings: indexConfig.settings};
+    }
+
+    esClient.indices.create(param, function(err) {
       if(err && /^IndexAlreadyExistsException/m.test(err.message)) {
         cb()
       } else {
