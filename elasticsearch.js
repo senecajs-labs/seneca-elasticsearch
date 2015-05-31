@@ -25,7 +25,6 @@ function search(options) {
     host          : '127.0.0.1:9200',
     sniffInterval : 300000,
     index         : 'seneca',
-    sniffOnStart  : true,
     log           : 'error'
   });
 
