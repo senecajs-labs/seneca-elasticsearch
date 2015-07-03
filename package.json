@@ -1,6 +1,6 @@
 {
   "name": "seneca-elasticsearch",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "elasticsearch plugin for seneca",
   "main": "elasticsearch.js",
   "scripts": {
