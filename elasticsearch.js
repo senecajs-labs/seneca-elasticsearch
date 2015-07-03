@@ -12,8 +12,9 @@ var ejs             = require('elastic.js');
 var uuid            = require('node-uuid');
 
 function search(options) {
-  var options = options || {};
   var seneca = this;
+
+  options = options || {};
 
   // Apply defaults individually,
   // instead of all-or-nothing.
@@ -31,9 +32,13 @@ function search(options) {
   connectionOptions = _.clone(connectionOptions);
   var esClient = new elasticsearch.Client(connectionOptions);
 
+
+  var i;
+
   var entitiesConfig = {};
+
   if(options.entities) {
-    for(var i = 0 ; i < options.entities.length ; i++) {
+    for(i = 0 ; i < options.entities.length ; i++) {
       var entitySettings = options.entities[i];
       var esEntityName = entityNameFromObj(entitySettings);
       var config = entitiesConfig[esEntityName] = {};
@@ -97,7 +102,7 @@ function search(options) {
 
   // entity events
   if(options.entities && options.entities.length > 0) {
-    for(var i = 0 ; i < options.entities.length ; i++) {
+    for(i = 0 ; i < options.entities.length ; i++) {
       var entityDef = options.entities[i];
 
       seneca.add(
@@ -343,10 +348,6 @@ function search(options) {
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
 
-      var query = {
-        ids: []
-      }
-
       //must search in database through all types if search return multiple types results
       var resultTypes = {};
 
@@ -355,58 +356,45 @@ function search(options) {
         if(!resultTypes[esType]){
           resultTypes[esType] = {
             type: hit._source.entity$,
-            ids: [],
-            hits: []
+            ids: []
           };
-          resultTypes[esType].ids.push(hit._id);
-          resultTypes[esType].hits.push(hit);
-        } else {
-          resultTypes[esType].ids.push(hit._id);
-          resultTypes[esType].hits.push(hit);
         }
+        resultTypes[esType].ids.push(hit._id);
       });
 
-      var totalHits = 0;
+      var databaseResults = [];
       async.each(_.keys(resultTypes), function(esType, next) {
 
         var typeHelper = seneca.make(resultTypes[esType].type);
-
-        query.ids = query.ids.concat(resultTypes[esType].ids);
-        var hits = resultTypes[esType].hits;
-
-        typeHelper.list$(query, function(err, objects) {
+        typeHelper.list$({ ids: resultTypes[esType].ids }, function(err, objects) {
           if (err) {
             return cb(err, undefined);
           }
-          var databaseResults = objects;
-          if (databaseResults) {
-            // Go from high to low because we're splicing out of the array while we're iterating through it
-            for (var i = hits.length - 1; i >= 0; i--) {
-              hits[i]._source = _.find(databaseResults, function (item) {
-                return hits[i]._id === item.id;
-              });
-              if (!hits[i]._source) {
-                hits.splice(i, 1);
-                esResults.hits.total -= 1;
-              }
-            }
-
-            resultTypes[esType].hits = hits;
+          if (objects && objects.length > 0) {
+            databaseResults.push.apply(databaseResults, objects);
           }
-          totalHits += esResults.hits.total;
+
           next();
         });
       }, function(err){
-        if(err) {
-          if (err) { return seneca.fail(err); }
-        } else {
-          esResults.hits.hits = [];
-          _.each(_.keys(resultTypes), function(esType){
-            esResults.hits.hits = esResults.hits.hits.concat(resultTypes[esType].hits);
-          });
-          esResults.hits.total = totalHits;
-          cb(undefined, esResults);
+        if (err) {
+          return seneca.fail(err);
         }
+
+        var databaseHits = [];
+
+        databaseResults = _.indexBy(databaseResults, 'id');
+        for(var i = 0 ; i < hits.length ; i++) {
+          var hit = hits[i];
+          hit._source = databaseResults[hit._id];
+          if (hit._source) {
+            databaseHits.push(hit);
+          }
+        }
+
+        esResults.hits.hits = databaseHits;
+
+        cb(undefined, esResults);
       });
     } else {
       cb(undefined, esResults);
