@@ -307,7 +307,9 @@ function search(options) {
 
       if(args.update) {
         args.request.body = {
-          doc: args.request.body
+          doc: args.request.body,
+          // use the content of the doc to upsert if the document is missing in ES
+          doc_as_upsert: true
         }
         esClient.update(args.request, cb);
       } else {
