@@ -194,7 +194,7 @@ function search(options) {
 
     seneca.act(args.command, function( err, result ) {
       if(err) {
-        return seneca.fail(err);
+        return cb(seneca.fail(err));
       } else {
         cb(null, args.entityResult);
       }
@@ -465,7 +465,7 @@ function search(options) {
         });
       }, function(err){
         if (err) {
-          return seneca.fail(err);
+          return cb(seneca.fail(err));
         }
 
         var databaseHits = [];
@@ -536,8 +536,8 @@ function search(options) {
   // ensures callback is called consistently
   function passArgs(args, cb) {
     return function (err, resp) {
-      if (err) { return seneca.fail(err); }
-      cb(err, args);
+      if (err) { return cb(seneca.fail(err)); }
+      cb(null, args);
     }
   }
 
