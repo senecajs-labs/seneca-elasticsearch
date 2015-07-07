@@ -214,9 +214,7 @@ function search(options) {
     };
     if (customAnalyzers) {
       _.extend(body.settings, {
-        analysis: {
-          analyzer: customAnalyzers
-        }
+        analysis: { analyzer: customAnalyzers }
       });
     }
     esClient.indices.create({
@@ -236,6 +234,29 @@ function search(options) {
     esClient.indices.delete({index: args.index}, cb);
   }
 
+  function verifyCustomAnalyzers(args, cb) {
+    async.waterfall([
+      function(done) {
+        // read settings
+        esClient.indices.getSettings({index: args.index}, function(err, response) {
+          if (err) { return done(err); }
+          return done(null, response[args.index] && response[args.index].settings.index);
+        });
+      },
+      function(settings, done) {
+        // check all custom analyzers appear in index
+        var analyzers = settings.analysis && settings.analysis.analyzer;
+        var needsUpdate = false;
+        _.each(_.keys(customAnalyzers), function(name) {
+          if (!analyzers || !analyzers[name] || !_.isEqual(analyzers[name], customAnalyzers[name])) {
+            needsUpdate = true;
+          }
+        });
+        return done(null, needsUpdate);
+      }
+    ], cb);
+  }
+
   function addCustomAnalyzers(args, cb) {
     // have to close the index before adding analyzers
     esClient.indices.close({index: args.index}, function(err) {
@@ -243,9 +264,7 @@ function search(options) {
 
       // passing analyzers as configured in module options
       var body = {
-        analysis: {
-          analyzer: customAnalyzers
-        }
+        analysis: { analyzer: customAnalyzers }
       };
 
       // update settings
@@ -257,7 +276,6 @@ function search(options) {
           return cb(errOpen || err);
         });
       });
-
     });
   }
 
@@ -273,11 +291,21 @@ function search(options) {
       // check and update the analyzers if required
       function(result, done) {
         // createIndex does not callback with error when index already exists
-        //  but it will callback with false here
+        //  instead it will callback with false
         // if the index already exists we need to check if any custom analyzers
         //  have been added and update the index settings if so
         if (result === false && customAnalyzers) {
-          addCustomAnalyzers(args, done)
+          async.waterfall([
+            _.partial(verifyCustomAnalyzers, args),
+            function(needsUpdate, done) {
+              if (needsUpdate) {
+                addCustomAnalyzers(args, done);
+              }
+              else {
+                return done();
+              }
+            }
+          ], done);
         }
         else {
           return done();
