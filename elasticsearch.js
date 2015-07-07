@@ -49,6 +49,8 @@ function search(options) {
     }
   }
 
+  var customAnalyzers = options.customAnalyzers;
+
   /**
    * Seneca bindings.
    *
@@ -207,11 +209,25 @@ function search(options) {
   }
 
   function createIndex(args, cb) {
-    esClient.indices.create({index: args.index}, function(err) {
+    var body = {
+      settings: {}
+    };
+    if (customAnalyzers) {
+      _.extend(body.settings, {
+        analysis: {
+          analyzer: customAnalyzers
+        }
+      });
+    }
+    esClient.indices.create({
+      index: args.index,
+      body: body
+    }, function(err) {
+      // callback with false if the index was not created
       if(err && /^IndexAlreadyExistsException/m.test(err.message)) {
-        cb()
+        cb(null, false)
       } else {
-        cb(err)
+        cb(err, !err)
       }
     });
   }
@@ -220,13 +236,54 @@ function search(options) {
     esClient.indices.delete({index: args.index}, cb);
   }
 
+  function addCustomAnalyzers(args, cb) {
+    // have to close the index before adding analyzers
+    esClient.indices.close({index: args.index}, function(err) {
+      if (err) { return cb(err); }
+
+      // passing analyzers as configured in module options
+      var body = {
+        analysis: {
+          analyzer: customAnalyzers
+        }
+      };
+
+      // update settings
+      esClient.indices.putSettings({
+        index: args.index,
+        body: body
+      }, function(err) {
+        esClient.indices.open({index: args.index}, function(errOpen) {
+          return cb(errOpen || err);
+        });
+      });
+
+    });
+  }
+
   // creates the index for us if it doesn't exist.
   function ensureIndex(args, cb) {
     args.index = args.index || connectionOptions.index;
 
     assert.ok(args.index, 'missing args.index');
 
-    createIndex(args, passArgs(args, cb));
+    async.waterfall([
+      // create the index
+      _.partial(createIndex, args),
+      // check and update the analyzers if required
+      function(result, done) {
+        // createIndex does not callback with error when index already exists
+        //  but it will callback with false here
+        // if the index already exists we need to check if any custom analyzers
+        //  have been added and update the index settings if so
+        if (result === false && customAnalyzers) {
+          addCustomAnalyzers(args, done)
+        }
+        else {
+          return done();
+        }
+      }
+    ], passArgs(args, cb));
   }
 
   function entityNameFromObj(obj) {
