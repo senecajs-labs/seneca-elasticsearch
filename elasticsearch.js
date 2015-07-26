@@ -167,7 +167,9 @@ function search(options) {
 
     args.command.cmd = 'save';
     args.command.data = args.entityData;
-    args.command.id = args.entityData.id;
+    if (args.entityData.id) {
+      args.command.id = args.entityData.id;
+    }
 
     cb(null, args);
   }
@@ -393,7 +395,9 @@ function search(options) {
     else {
       // set the ES id as the entity id. We use it for 1-1 mapping between
       // ES and the DB.
-      args.request.id = args.data.id;
+      if (args.data.id) {
+        args.request.id = args.data.id;
+      }
 
       if(args.update) {
         args.request.body = {

@@ -57,6 +57,10 @@ describe('entities', function() {
     });
   });
 
+  it('should generate an id if not provided', function() {
+    assert.ok(fooId);
+  });
+
   it('update', function(done) {
     foo.jobTitle += '_updated'
     foo.id$ = fooId;
