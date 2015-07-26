@@ -431,6 +431,13 @@ function search(options) {
   }
 
   function fetchEntitiesFromDB(esResults, statusCode, cb) {
+
+    // this only applies if entities have been defined
+    if (!(options.entities && options.entities.length > 0)) {
+      return cb(null, esResults, statusCode);
+    }
+
+
     var seneca = this;
     if(esResults && esResults.hits && esResults.hits.hits && esResults.hits.hits.length > 0) {
       var hits = esResults.hits.hits;
