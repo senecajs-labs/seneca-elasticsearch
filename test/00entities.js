@@ -13,7 +13,6 @@ var indexName = 'seneca-test-entity';
 seneca.use('mem-store');
 
 seneca.use('../elasticsearch.js', {
-  refreshOnSave: true,
   entities: [{
     zone: undefined,
     base: undefined,
@@ -31,6 +30,10 @@ seneca.use('../elasticsearch.js', {
   connection: { index: indexName }
 });
 
+before(function(done) {
+  seneca.ready(done);
+});
+
 describe('entities', function() {
   var fooId; // to hold the generated id
   var foo = seneca.make$('foo');
@@ -42,13 +45,9 @@ describe('entities', function() {
       .catch(done);
   });
 
-  before(function(done) {
+  it('should save entity', function(done) {
     foo.jobTitle = 'important sounding title';
     foo.passHash = 'DO NOT INDEX!';
-    seneca.ready(done);
-  });
-
-  it('should save entity', function(done) {
     foo.save$(function(err, result) {
       assert.ok(!err, err);
 
@@ -60,6 +59,7 @@ describe('entities', function() {
   it('should generate an id if not provided', function() {
     assert.ok(fooId);
   });
+
 
   it('update', function(done) {
     foo.jobTitle += '_updated'
@@ -76,7 +76,7 @@ describe('entities', function() {
   it('load', function(done) {
 
     // need to debounce for 50ms to let the data get indexed.
-    _.delay(delayCb, 50);
+    _.delay(delayCb, 1000);
 
     function delayCb() {
       var command = {
@@ -100,7 +100,6 @@ describe('entities', function() {
       var src = resp._source;
       src.jobTitle.should.eql('important sounding title_updated');
       should.not.exist(src.passHash);
-      should.not.exist(src.id);
       should.not.exist(src.entity$);
       done();
     }
@@ -117,11 +116,10 @@ describe('entities', function() {
 
   describe('configured analyzer', function() {
     var foo = seneca.make$('foo');
-    before(function(done) {
-      foo.jobTitle = 'important sounding title';
-      foo.configuredAnalyzer = 'DO NOT ANALYZE';
-      seneca.ready(done);
-    });
+
+    foo.jobTitle = 'important sounding title';
+    foo.configuredAnalyzer = 'DO NOT ANALYZE';
+
     it('should save entity', function(done) {
       foo.save$(function(err, result) {
         assert.ok(!err, err);
@@ -132,10 +130,10 @@ describe('entities', function() {
     });
 
 
-    it('load', function(done) {
+    it('search', function(done) {
 
       // need to debounce for 50ms to let the data get indexed.
-      _.delay(delayCb, 50);
+      _.delay(delayCb, 1000);
 
       function delayCb() {
         var command = {
@@ -171,7 +169,7 @@ describe('entities', function() {
         src.jobTitle.should.eql('important sounding title');
         src.configuredAnalyzer.should.eql('DO NOT ANALYZE');
         should.not.exist(src.passHash);
-        should.not.exist(src.id);
+        should.exist(src.id);
         should.not.exist(src.entity$);
         done();
       }
