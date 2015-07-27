@@ -102,7 +102,8 @@ describe('entities', function() {
       var src = resp._source;
       src.jobTitle.should.eql('important sounding title_updated');
       should.not.exist(src.passHash);
-      should.not.exist(src.entity$);
+      should.exist(src.entity$);
+      src.entity$.should.eql('-/-/foo');
       done();
     }
   });
@@ -172,7 +173,8 @@ describe('entities', function() {
         src.configuredAnalyzer.should.eql('DO NOT ANALYZE');
         should.not.exist(src.passHash);
         should.exist(src.id);
-        should.not.exist(src.entity$);
+        should.exist(src.entity$);
+        src.entity$.should.eql('-/-/foo');
         done();
       }
     });

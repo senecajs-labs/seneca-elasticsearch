@@ -153,9 +153,11 @@ function search(options) {
     var data = _.pick(result, indexedAttributes);
 
     data.id = result.id;
+    data.entity$ = args.ent.entity$;
 
     args.entityData = data;
     args.command.cmd = 'save';
+
     args.command.data = args.entityData;
     if (args.entityData.id) {
       args.command.id = args.entityData.id;
