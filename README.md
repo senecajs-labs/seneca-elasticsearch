@@ -1,3 +1,5 @@
+![build status](https://travis-ci.org/AdrianRossouw/seneca-elasticsearch.svg)
+
 elastic search plugin to seneca
 
 This plugin will automatically index any entities that are being saved.
@@ -13,14 +15,20 @@ rest of the api assumes you know what you are doing.
 seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
 
 seneca.use('seneca-elasticsearch', {
-  refreshOnSave : true,                 // highly recommended
+  fetchEntitiesFromDB: true, // only enable if you depend on this for permissions.
+  refreshOnSave: true, // never enable this if your code needs to run in production.
+  entities: [{
+	name: 'foo',
+	indexedAttributes: { // define mapping to be imported
+	  someField: {
+		type: 'string',
+		index: 'not_analyzed'
+	  }
+	}
+  }],
 
-  entities      : {                     // fields for each entity type to index
-    foo         : ['jobTitle']          // if not defined, no fields are indexed
-  },
-
-  connection    : { index : indexName }, // customize index name
-  pingTimeout   : 1000
+  connection: { index : indexName }, // customize index name
+  pingTimeout: 1000
 });
 
 seneca.ready(function(err) {

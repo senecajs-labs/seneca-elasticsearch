@@ -33,21 +33,20 @@ function search(options) {
   var esClient = new elasticsearch.Client(connectionOptions);
 
 
-  var i;
+  var entitiesConfig = _.reduce(options.entities || [], function(m, entity) {
+    var config = {};
 
-  var entitiesConfig = {};
+    var name = entityNameFromObj(entity);
 
-  if(options.entities) {
-    for(i = 0 ; i < options.entities.length ; i++) {
-      var entitySettings = options.entities[i];
-      var esEntityName = entityNameFromObj(entitySettings);
-      var config = entitiesConfig[esEntityName] = {};
-      if(entitySettings.indexedAttributes) {
-        config.indexedAttributes = Object.keys(entitySettings.indexedAttributes);
-        config.mapping = entitySettings.indexedAttributes;
-      }
+    if (entity.indexedAttributes) {
+      config.indexedAttributes = _.keys(entity.indexedAttributes);
+      config.mapping = entity.indexedAttributes;
     }
-  }
+
+    m[name] = config;
+    return m;
+  }, {});
+
 
   var customAnalyzers = options.customAnalyzers;
 
@@ -92,6 +91,9 @@ function search(options) {
   seneca.add({role: pluginName, cmd: 'load'},
     async.seq(populateRequest, loadRecord));
 
+  seneca.add({role: pluginName, cmd: 'refresh'},
+    async.seq(populateRequest, doRefresh));
+
   seneca.add({role: pluginName, cmd: 'count'},
     async.seq(populateRequest, populateSearch, populateSearchBody, doCount, fetchEntitiesFromDB));
 
@@ -104,26 +106,18 @@ function search(options) {
 
   // entity events
   if(options.entities && options.entities.length > 0) {
-    for(i = 0 ; i < options.entities.length ; i++) {
-      var entityDef = options.entities[i];
+    _.each(options.entities || [], function(entity) {
+      seneca.add(
+        augmentArgs({ role:'entity', cmd:'save' }, entity),
+        async.seq(populateCommand, entityPrior, entitySave, entityAct));
 
       seneca.add(
-        augmentArgs({
-          role:'entity',
-          cmd:'save'
-        }, entityDef),
-        async.seq(populateCommand, entityPrior, pickFields, entitySave, entityAct));
-
-      seneca.add(
-        augmentArgs({
-          role:'entity',
-          cmd:'remove'
-        }, entityDef),
+        augmentArgs({ role:'entity', cmd:'remove' }, entity),
         async.seq(populateCommand, entityRemove, entityPrior, entityAct));
-    }
+    })
   } else {
     seneca.add({role:'entity',cmd:'save'},
-      async.seq(populateCommand, entityPrior, pickFields, entitySave, entityAct));
+      async.seq(populateCommand, entityPrior, entitySave, entityAct));
 
     seneca.add({role:'entity',cmd:'remove'},
       async.seq(populateCommand, entityRemove, entityPrior, entityAct));
@@ -145,8 +139,8 @@ function search(options) {
     cb(null, args);
   }
 
-  function pickFields(args, cb) {
-    var data = args.entityResult.data$();
+  function entitySave(args, cb) {
+    var result = args.entityResult.data$();
 
     // allow per-entity field configuration
     var type = args.command.type;
@@ -156,21 +150,18 @@ function search(options) {
     if(typeConfig && typeConfig.indexedAttributes) {
       indexedAttributes = typeConfig.indexedAttributes;
     }
-    data = _.pick(data, indexedAttributes);
-    data.entity$ = args.entityResult.entity$;
+    var data = _.pick(result, indexedAttributes);
+
+    data.id = result.id;
+    data.entity$ = args.ent.entity$;
 
     args.entityData = data;
-    cb(null, args);
-  }
-
-  function entitySave(args, cb) {
-
     args.command.cmd = 'save';
+
     args.command.data = args.entityData;
     if (args.entityData.id) {
       args.command.id = args.entityData.id;
     }
-
     cb(null, args);
   }
 
@@ -334,16 +325,14 @@ function search(options) {
 
   function putMappings(args, cb) {
     var r = new ParallelRunner();
-    for(var entityType in entitiesConfig) {
-      var mapping = {};
-      var properties = {};
-      var hasProperties = false;
-      for(var prop in entitiesConfig[entityType].mapping) {
-        if(entitiesConfig[entityType].mapping[prop] !== true) {
-          properties[prop] = entitiesConfig[entityType].mapping[prop];
-          hasProperties = true;
+    var mapping = _.each(entitiesConfig, function(entity, name) {
+      var properties = _.reduce(entity.mapping, function(mem, val, key) {
+        if (val !== true) {
+          mem[key] = val;
         }
-      }
+        return mem;
+      }, {});
+      
       properties.entity$ = {
         type: 'string',
         index: 'not_analyzed'
@@ -352,14 +341,11 @@ function search(options) {
         type: 'string',
         index: 'not_analyzed'
       };
-      mapping[entityType] = {
-        properties: properties
-      };
-      r.add(putMapping, entityType, mapping);
-    }
-    r.run(function() {
-      cb();
+
+      r.add(putMapping, name, { properties: properties });
     });
+
+    r.run(function() { cb() });
   }
 
   function putMapping(type, mapping, cb) {
@@ -395,9 +381,7 @@ function search(options) {
     else {
       // set the ES id as the entity id. We use it for 1-1 mapping between
       // ES and the DB.
-      if (args.data.id) {
-        args.request.id = args.data.id;
-      }
+      args.request.id = args.data.id;
 
       if(args.update) {
         args.request.body = {
@@ -426,6 +410,10 @@ function search(options) {
     });
   }
 
+  function doRefresh(args, cb) {
+    esClient.indices.refresh(options.connection.index, cb);
+  }
+
   function doSearch(args, cb) {
     esClient.search(args.request, cb);
   }
@@ -434,12 +422,12 @@ function search(options) {
     esClient.count(args.request, cb);
   }
 
+  // TODO: is this really a general api requirement?
   function fetchEntitiesFromDB(esResults, statusCode, cb) {
-    // TODO: is this really a general api requirement?
-    // shouldn't it be behind a flag at least?
 
     // this only applies if entities have been defined
-    if (!(options.entities && options.entities.length > 0)) {
+    var hasEntities = options.entities && options.entities.length > 0;
+    if (!options.fetchEntitiesFromDB || !hasEntities) {
       return cb(null, esResults, statusCode);
     }
 

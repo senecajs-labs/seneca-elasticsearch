@@ -15,8 +15,13 @@
     "search",
     "seneca"
   ],
-  "author": "Nicolas Herment",
-  "license": "ISC",
+  "contributors": [
+    "Adrian Rossouw <adrian@daemon.co.za>",
+    "Nicolas Herment <nicolas.herment@nearform.com>",
+    "Richard Rodger <richard.rodger@nearform.com>",
+    "Cristian Ianto <cristian.ianto@nearform.com>"
+  ],
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/nherment/seneca-elasticsearch/issues"
   },
@@ -24,7 +29,7 @@
   "dependencies": {
     "async": "0.6.2",
     "elastic.js": "1.1.1",
-    "elasticsearch": "2.1.0",
+    "elasticsearch": "^5.0.0",
     "node-uuid": "1.4.1",
     "serial": "0.0.6",
     "underscore": "1.6.0"
@@ -34,7 +39,7 @@
   },
   "devDependencies": {
     "mocha": "1.20.1",
-    "seneca": "0.5.15",
+    "seneca": "0.6.1",
     "should": "3.2.0"
   }
 }
