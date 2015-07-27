@@ -78,7 +78,7 @@ describe('entities', function() {
   it('load', function(done) {
 
     // need to debounce for 50ms to let the data get indexed.
-    _.delay(delayCb, 1100);
+    _.delay(delayCb, 100);
 
     function delayCb() {
       var command = {
@@ -135,7 +135,7 @@ describe('entities', function() {
     it('search', function(done) {
 
       // need to debounce for 50ms to let the data get indexed.
-      _.delay(delayCb, 1000);
+      _.delay(delayCb, 100);
 
       function delayCb() {
         var command = {
