@@ -108,7 +108,6 @@ describe('entities', function() {
     }
   });
 
-
   it('should remove the entity', function(done) {
     foo.remove$(fooId, throwOnError(done));
   });

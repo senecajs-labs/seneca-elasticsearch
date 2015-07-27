@@ -15,8 +15,13 @@
     "search",
     "seneca"
   ],
-  "author": "Nicolas Herment",
-  "license": "ISC",
+  "contributors": [
+    "Adrian Rossouw <adrian@daemon.co.za>",
+    "Nicolas Herment <nicolas.herment@nearform.com>",
+    "Richard Rodger <richard.rodger@nearform.com>",
+    "Cristian Ianto <cristian.ianto@nearform.com>"
+  ],
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/nherment/seneca-elasticsearch/issues"
   },
