@@ -413,12 +413,12 @@ function search(options) {
     esClient.count(args.request, cb);
   }
 
+  // TODO: is this really a general api requirement?
   function fetchEntitiesFromDB(esResults, statusCode, cb) {
-    // TODO: is this really a general api requirement?
-    // shouldn't it be behind a flag at least?
 
     // this only applies if entities have been defined
-    if (!(options.fetchEntitiesFromDB)) {
+    var hasEntities = options.entities && options.entities.length > 0;
+    if (!options.fetchEntitiesFromDB || !hasEntities) {
       return cb(null, esResults, statusCode);
     }
 
