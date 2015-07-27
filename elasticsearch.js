@@ -437,7 +437,6 @@ function search(options) {
       var resultTypes = {};
 
       _.each(hits, function(hit){
-        console.log(hits._source.entity$);
         var esType = entityNameFromStr(hit._source.entity$);
         if(!resultTypes[esType]){
           resultTypes[esType] = {
