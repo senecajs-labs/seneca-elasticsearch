@@ -91,6 +91,9 @@ function search(options) {
   seneca.add({role: pluginName, cmd: 'load'},
     async.seq(populateRequest, loadRecord));
 
+  seneca.add({role: pluginName, cmd: 'refresh'},
+    async.seq(populateRequest, doRefresh));
+
   seneca.add({role: pluginName, cmd: 'count'},
     async.seq(populateRequest, populateSearch, populateSearchBody, doCount, fetchEntitiesFromDB));
 
@@ -405,6 +408,10 @@ function search(options) {
     });
   }
 
+  function doRefresh(args, cb) {
+    esClient.indices.refresh(options.connection.index, cb);
+  }
+
   function doSearch(args, cb) {
     esClient.search(args.request, cb);
   }
@@ -430,6 +437,7 @@ function search(options) {
       var resultTypes = {};
 
       _.each(hits, function(hit){
+        console.log(hits._source.entity$);
         var esType = entityNameFromStr(hit._source.entity$);
         if(!resultTypes[esType]){
           resultTypes[esType] = {
