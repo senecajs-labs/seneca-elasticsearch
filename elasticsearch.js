@@ -321,7 +321,12 @@ function search(options) {
   function putMappings(args, cb) {
     var r = new ParallelRunner();
     var mapping = _.each(entitiesConfig, function(entity, name) {
-      var properties = entity.mapping;
+      var properties = _.reduce(entity.mapping, function(mem, val, key) {
+        if (val !== true) {
+          mem[key] = val;
+        }
+        return mem;
+      }, {});
       
       properties.entity$ = {
         type: 'string',

@@ -13,6 +13,8 @@ var indexName = 'seneca-test-entity';
 seneca.use('mem-store');
 
 seneca.use('../elasticsearch.js', {
+  // Using this option is ONLY acceptable in tests.
+  refreshOnSave: true,
   entities: [{
     zone: undefined,
     base: undefined,
@@ -63,7 +65,7 @@ describe('entities', function() {
 
   it('update', function(done) {
     foo.jobTitle += '_updated'
-    foo.id$ = fooId;
+    foo.id = fooId;
 
     foo.save$(function(err, result) {
       assert.ok(!err, err);
@@ -76,7 +78,7 @@ describe('entities', function() {
   it('load', function(done) {
 
     // need to debounce for 50ms to let the data get indexed.
-    _.delay(delayCb, 1000);
+    _.delay(delayCb, 1100);
 
     function delayCb() {
       var command = {
