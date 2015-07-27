@@ -1,3 +1,5 @@
+![build status](https://travis-ci.org/AdrianRossouw/seneca-elasticsearch.svg)
+
 elastic search plugin to seneca
 
 This plugin will automatically index any entities that are being saved.
