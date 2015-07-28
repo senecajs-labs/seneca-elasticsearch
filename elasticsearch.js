@@ -198,7 +198,9 @@ function search(options) {
    * Index management.
    */
   function hasIndex(args, cb) {
-    esClient.indices.exists({index: args.index}, cb);
+    esClient.indices.exists({index: args.index}, function(err) {
+      cb(err);
+    });
   }
 
   function createIndex(args, cb) {
@@ -216,9 +218,9 @@ function search(options) {
     }, function(err) {
       // callback with false if the index was not created
       if(err && /^IndexAlreadyExistsException/m.test(err.message)) {
-        cb(null, false)
+        cb(null, {ok: false})
       } else {
-        cb(err, !err)
+        cb(err, {ok: !err})
       }
     });
   }
@@ -287,7 +289,7 @@ function search(options) {
         //  instead it will callback with false
         // if the index already exists we need to check if any custom analyzers
         //  have been added and update the index settings if so
-        if (result === false && customAnalyzers) {
+        if (result.ok === false && customAnalyzers) {
           async.waterfall([
             _.partial(verifyCustomAnalyzers, args),
             function(needsUpdate, done) {
