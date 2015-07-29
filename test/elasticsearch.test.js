@@ -8,7 +8,7 @@ var elasticsearch  = require('elasticsearch');
 var esPlugin       = require('../elasticsearch.js');
 var _              = require('underscore');
 
-var seneca = require('seneca')();
+var seneca = require('seneca')({ strict: { add: false} });
 
 seneca.use(esPlugin, {refreshOnSave: true});
 

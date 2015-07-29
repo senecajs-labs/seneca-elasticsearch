@@ -9,9 +9,15 @@ rest of the api assumes you know what you are doing.
 ## Setup
 
 ```JavaScript
+
+var seneca = require('seneca')({
+  strict: { // needed for seneca 0.6.4+
+    add: false
+  }
+});
+
 // important to use a store definition BEFORE including this module
 // to automatically index entities
-
 seneca.use('mem-store',{ map:{ '-/-/foo':'*' }});
 
 seneca.use('seneca-elasticsearch', {

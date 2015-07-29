@@ -9,7 +9,7 @@ var bulkFixture    = require('./fixtures/bulk.json');
 var _              = require('underscore');
 var ejs            = require('elastic.js');
 
-var seneca = require('seneca')();
+var seneca = require('seneca')({ strict: { add: false }});
 
 
 var indexName = 'seneca-test-search';

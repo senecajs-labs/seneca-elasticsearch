@@ -7,7 +7,7 @@ var should         = require('should');
 var elasticsearch  = require('elasticsearch');
 var _              = require('underscore');
 
-var seneca = require('seneca')();
+var seneca = require('seneca')({ strict: { add: false} });
 var indexName = 'seneca-test-entity';
 
 seneca.use('mem-store');
