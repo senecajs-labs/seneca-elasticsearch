@@ -34,12 +34,9 @@
     "serial": "0.0.6",
     "underscore": "1.6.0"
   },
-  "peerDependencies": {
-    "seneca": "*"
-  },
   "devDependencies": {
     "mocha": "1.20.1",
-    "seneca": "0.6.1",
+    "seneca": "0.6.4",
     "should": "3.2.0"
   }
 }
