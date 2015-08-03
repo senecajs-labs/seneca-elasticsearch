@@ -122,12 +122,11 @@ seneca.act({
 
 ## testing
 
-By default this libraries maintains a connection to ElasticSearch using a keepAlice.  If you use this library as part of your own plugin,  you'll find that your tests never complete.  To disable the keepAlive, do: 
+By default this library maintains a connection to ElasticSearch using a keepAlive.  If you use this library as part of your own plugin,  depending on the testing library you employ it's possible that your tests never complete because the connection is held open.  To disable the keepAlive, do: 
 
 ````json
 connection:  {
   keepAlive: false,  // NEEDED FOR TESTS ONLY
-  sniffInterval : 0  // NEEDED FOR TESTS ONLY
 }
 ````
 
