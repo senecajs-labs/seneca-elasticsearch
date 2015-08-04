@@ -133,6 +133,7 @@ By default this library maintains a connection to ElasticSearch using a keepAliv
 ````json
 connection:  {
   keepAlive: false,  // NEEDED FOR TESTS ONLY
+  sniffInterval: 0   // NEEDED FOR TESTS ONLY
 }
 ````
 
