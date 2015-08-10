@@ -217,7 +217,7 @@ function search(options) {
       body: body
     }, function(err) {
       // callback with false if the index was not created
-      if(err && /^IndexAlreadyExistsException/m.test(err.message)) {
+      if(err && /IndexAlreadyExistsException/m.test(err.message)) {
         cb(null, {ok: false})
       } else {
         cb(err, {ok: !err})
