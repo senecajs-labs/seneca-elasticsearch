@@ -29,7 +29,7 @@
   "dependencies": {
     "async": "0.6.2",
     "elastic.js": "1.1.1",
-    "elasticsearch": "^5.0.0",
+    "elasticsearch": "^11.0.0",
     "node-uuid": "1.4.1",
     "serial": "0.0.6",
     "underscore": "1.6.0"
