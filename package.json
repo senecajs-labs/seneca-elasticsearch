@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git://github.com/nherment/seneca-elasticsearch.git"
   },
-  { "engines" : { "node" : ">=6.1.0" } },
+  "engines" : { "node" : ">=6.1.0" },
   "keywords": [
     "elasticsearch",
     "search",
