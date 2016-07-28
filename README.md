@@ -1,6 +1,8 @@
-![build status](https://travis-ci.org/AdrianRossouw/seneca-elasticsearch.svg)
+![SenecaLogo][]
 
-elastic search plugin to seneca
+# seneca-elasticsearch
+
+elastic search plugin to [Seneca][]
 
 This plugin will automatically index any entities that are being saved.
 Only entities will have their fields filtered by options.fields, the
@@ -47,7 +49,7 @@ seneca.ready(function(err) {
 ```
 
 
-## index management api
+## Index management api
 
 ```JavaScript
 // check for index
@@ -60,7 +62,7 @@ seneca.act({role: 'search', cmd: 'create-index', index: 'myIndex'}, callback);
 seneca.act({role: 'search', cmd: 'delete-index', index: 'myIndex'}, callback);
 ```
 
-## record management api
+## Record management api
 
 ```JavaScript
 // index or update a record
@@ -96,7 +98,7 @@ seneca.act({
 }, callback);
 ```
 
-## search api
+## Search api
 
 ```JavaScript
 // return all records
@@ -126,7 +128,7 @@ seneca.act({
 // to be using.
 ```
 
-## testing
+## Testing
 
 By default this library maintains a connection to ElasticSearch using a keepAlive.  If you use this library as part of your own plugin,  depending on the testing library you employ it's possible that your tests never complete because the connection is held open.  To disable the keepAlive, do: 
 
@@ -138,3 +140,15 @@ connection:  {
 ````
 
 
+## Contributing
+
+The [Senecajs org][] encourage open participation. If you feel you can help in any way, be it with documentation, examples, extra testing, or new features please get in touch.
+
+## License
+
+Copyright Adrian Rossouw and other contributors 2014 - 2016, Licensed under [MIT][].
+
+[SenecaLogo]: https://camo.githubusercontent.com/4a0178ff2abf26f9214d4d98bc23eec356ced357/687474703a2f2f73656e6563616a732e6f72672f66696c65732f6173736574732f73656e6563612d6c6f676f2e706e67
+[Seneca]: http://senecajs.org/
+[Senecajs org]: https://github.com/senecajs/
+[MIT]: ./LICENSE.txt
