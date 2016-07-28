@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/nherment/seneca-elasticsearch.git"
+    "url": "git://github.com/senecajs-labs/seneca-elasticsearch.git"
   },
   "keywords": [
     "elasticsearch",
@@ -23,9 +23,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nherment/seneca-elasticsearch/issues"
+    "url": "https://github.com/senecajs-labs/seneca-elasticsearch/issues"
   },
-  "homepage": "https://github.com/nherment/seneca-elasticsearch",
+  "homepage": "https://github.com/senecajs-labs/seneca-elasticsearch",
   "dependencies": {
     "async": "0.6.2",
     "elastic.js": "1.1.1",
