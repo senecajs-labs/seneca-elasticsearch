@@ -1,5 +1,8 @@
 ![build status](https://travis-ci.org/AdrianRossouw/seneca-elasticsearch.svg)
 
+| ![Voxgig](https://www.voxgig.com/res/img/vgt01r.png) | This open source module is sponsored and supported by [Voxgig](https://www.voxgig.com). |
+|---|---|
+
 elastic search plugin to seneca
 
 This plugin will automatically index any entities that are being saved.
